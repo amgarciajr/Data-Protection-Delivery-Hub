@@ -1,0 +1,16 @@
+{
+  "appName": "Data Protection Delivery Hub",
+  "appType": "vibe-code-app",
+  "databaseReferences": {
+    "dataverse": {
+      "solution": "DataProtectionDeliveryHub",
+      "publisherPrefix": "dpdh"
+    }
+  },
+  "connectionReferences": {
+    "sharepoint": "CONFIGURE_IN_TARGET",
+    "office365users": "CONFIGURE_IN_TARGET",
+    "office365outlook": "OPTIONAL_CONFIGURE_IN_TARGET",
+    "teams": "OPTIONAL_CONFIGURE_IN_TARGET"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "engagements": [
+    {
+      "id": "e1",
+      "name": "Synthetic Data Governance Readiness",
+      "stage": "Assess",
+      "health": "Amber",
+      "owner": "Demo Manager",
+      "progress": 46,
+      "readiness": 58,
+      "evidence": 42
+    },
+    {
+      "id": "e2",
+      "name": "Synthetic Information Protection Modernization",
+      "stage": "Validate",
+      "health": "Green",
+      "owner": "Demo Lead",
+      "progress": 81,
+      "readiness": 76,
+      "evidence": 84
+    },
+    {
+      "id": "e3",
+      "name": "Synthetic AI Data Security Assessment",
+      "stage": "Design",
+      "health": "Red",
+      "owner": "Demo Architect",
+      "progress": 34,
+      "readiness": 31,
+      "evidence": 27
+    }
+  ],
+  "risks": [
+    {
+      "id": "r1",
+      "title": "Required access not confirmed",
+      "severity": "Critical",
+      "owner": "Customer owner required",
+      "due": "2026-09-18"
+    },
+    {
+      "id": "r2",
+      "title": "Testing environment decision overdue",
+      "severity": "High",
+      "owner": "Demo PM",
+      "due": "2026-09-20"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "d1",
+      "title": "Select evidence repository",
+      "status": "Overdue",
+      "owner": "Demo Manager"
+    },
+    {
+      "id": "d2",
+      "title": "Approve readiness exception",
+      "status": "Due soon",
+      "owner": "Demo Architect"
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "v1",
+      "title": "Current-State Assessment",
+      "state": "Quality review"
+    },
+    {
+      "id": "v2",
+      "title": "Solution Design",
+      "state": "Draft"
+    },
+    {
+      "id": "v3",
+      "title": "Operational Handoff",
+      "state": "Not started"
+    }
+  ]
+}
