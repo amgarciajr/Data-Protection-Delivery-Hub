@@ -11,9 +11,12 @@ export type HubRecord = {
 };
 
 export type RepositoryMode = "synthetic" | "local" | "dataverse";
+export type RuntimeMode = "demo" | "live";
 
 export type RepositoryConfig = {
   mode: RepositoryMode;
+  runtimeMode: RuntimeMode;
+  liveAdapterConfigured: boolean;
   dataverseUrl: string;
   solutionName: string;
   publisherPrefix: string;
@@ -95,12 +98,14 @@ export type ReusableAsset = {
 };
 
 export const repositoryConfig: RepositoryConfig = {
-  mode: "local",
-  dataverseUrl: "",
+  mode: import.meta.env.VITE_HUB_MODE === "live" ? "dataverse" : "local",
+  runtimeMode: import.meta.env.VITE_HUB_MODE === "live" ? "live" : "demo",
+  liveAdapterConfigured: import.meta.env.VITE_LIVE_ADAPTER_CONFIGURED === "true",
+  dataverseUrl: import.meta.env.VITE_DATAVERSE_URL ?? "",
   solutionName: "DataProtectionDeliveryHub",
-  publisherPrefix: "dpdh",
-  sharePointSiteUrl: "",
-  sharePointEvidenceLibrary: "",
+  publisherPrefix: import.meta.env.VITE_PUBLISHER_PREFIX ?? "dpdh",
+  sharePointSiteUrl: import.meta.env.VITE_SHAREPOINT_SITE_URL ?? "",
+  sharePointEvidenceLibrary: import.meta.env.VITE_SHAREPOINT_EVIDENCE_LIBRARY ?? "",
 };
 
 const storageKey = "dpdh-local-records-v1";
@@ -344,13 +349,26 @@ export function getConnectionReadiness() {
   if (!repositoryConfig.dataverseUrl) missing.push("Dataverse environment URL");
   if (!repositoryConfig.sharePointSiteUrl) missing.push("SharePoint evidence site URL");
   if (!repositoryConfig.sharePointEvidenceLibrary) missing.push("SharePoint evidence library");
+  if (repositoryConfig.runtimeMode === "live" && !repositoryConfig.liveAdapterConfigured) missing.push("approved live adapter");
   return {
     ready: missing.length === 0,
     mode: repositoryConfig.mode,
+    runtimeMode: repositoryConfig.runtimeMode,
+    liveAdapterConfigured: repositoryConfig.liveAdapterConfigured,
     missing,
     message:
-      missing.length === 0
-        ? "Connection placeholders are configured."
-        : "Synthetic and local persistence are active. Live connectors remain intentionally unconfigured.",
+      repositoryConfig.runtimeMode === "live" && !repositoryConfig.liveAdapterConfigured
+        ? "Live mode is selected, but no approved live adapter is configured. The application is fail-closed."
+        : missing.length === 0
+          ? "Connection placeholders are configured."
+          : "Demo mode is active. Synthetic and local persistence are enabled; live connectors remain intentionally unconfigured.",
+  };
+}
+
+export function getRuntimeConfig() {
+  return {
+    runtimeMode: repositoryConfig.runtimeMode,
+    liveAdapterConfigured: repositoryConfig.liveAdapterConfigured,
+    canUseLiveData: false,
   };
 }

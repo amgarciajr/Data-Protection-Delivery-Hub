@@ -229,6 +229,58 @@ button:focus-visible {
   padding: 4px;
 }
 
+.runtime-badge {
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 5px 9px;
+}
+
+.runtime-demo {
+  background: #fff4ed;
+  border-color: #ffb39a;
+  color: #a93600;
+}
+
+.runtime-live {
+  background: #fff4ed;
+  border-color: #ff5800;
+  color: #a93600;
+}
+
+.live-mode-gate {
+  border-top: 5px solid #ff5800;
+  margin-top: 24px;
+  max-width: 820px;
+  padding: 30px;
+}
+
+.live-mode-gate h1 {
+  margin: 8px 0;
+}
+
+.live-mode-gate > p {
+  color: #555;
+  font-size: 16px;
+  max-width: 680px;
+}
+
+.live-mode-checklist {
+  background: #fff4ed;
+  border-left: 3px solid #ff5800;
+  border-radius: 7px;
+  display: grid;
+  gap: 5px;
+  margin: 22px 0;
+  padding: 14px;
+}
+
+.live-mode-checklist span {
+  color: #555;
+  font-size: 13px;
+}
+
 .info-tip {
   align-items: center;
   background: #ffb314;
@@ -1388,6 +1440,22 @@ button:focus-visible {
 .theme-dark .guided-card {
   background: #172536;
   color: #e6edf5;
+}
+
+.theme-dark .runtime-demo,
+.theme-dark .runtime-live {
+  background: #3b2f1c;
+  border-color: #80652c;
+  color: #f0d99b;
+}
+
+.theme-dark .live-mode-gate > p,
+.theme-dark .live-mode-checklist span {
+  color: #c4d5e1;
+}
+
+.theme-dark .live-mode-checklist {
+  background: #3b2f1c;
 }
 
 .theme-dark .guided-card > p,

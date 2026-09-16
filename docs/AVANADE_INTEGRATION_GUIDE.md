@@ -14,6 +14,8 @@ The intended production architecture is:
 
 The current React/Vite application remains a safe demonstration surface. It uses `src/data/repository.ts` and browser-local persistence; it must not be treated as the production system of record.
 
+The prototype includes an explicit Demo/Live contract. Keep `VITE_HUB_MODE=demo` for discovery and pilot builds. A governed release may select `live` only after the adapter, Entra authorization, audit persistence, monitoring, rollback, and ALM evidence meet the [implementation requirements](IMPLEMENTATION_REQUIREMENTS.md). The in-app control is not a security boundary.
+
 ## Avanade ownership model
 
 Before configuration, name accountable owners in the target environment:

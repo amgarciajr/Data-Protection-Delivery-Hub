@@ -94,6 +94,10 @@ The demonstration settings pane supports language, theme, Guided mode, and role-
 
 The engagement selector, search, role preferences, and locally created records are demonstration features backed by synthetic data and browser-local persistence. They do not connect or synchronize with Dataverse, SharePoint, Teams, Planner, Outlook, OneNote, Power BI, or Copilot.
 
+## Demo and Live mode
+
+The header shows the active environment mode. **Demo mode** is the safe working mode and uses synthetic/local data. **Live mode** is a guarded implementation path: in this prototype it stops at a clear handoff screen because no approved live adapter is connected. Do not interpret the toggle as authentication, authorization, or proof of production readiness.
+
 ## What to do when something is wrong
 
 Do not work around a control by copying data to an unapproved location or changing a record outside the Hub. Capture the engagement, record, action, time, error text, and business impact, then follow `SUPPORT_RUNBOOK.md`.

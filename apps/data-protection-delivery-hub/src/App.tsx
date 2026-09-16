@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import seed from "./data/seed.json";
-import { addPracticeImprovement, addRecord, getAuditEvents, getConnectionReadiness, getPracticeImprovements, getRecords, getWorkTasks, metricHistory, qualityMetrics, repositoryConfig, reusableAssets, stageTemplates, updateWorkTaskStatus, type HubRecord, type PracticeImprovement, type WorkTask, type WorkTaskStatus } from "./data/repository";
+import { addPracticeImprovement, addRecord, getAuditEvents, getConnectionReadiness, getPracticeImprovements, getRecords, getRuntimeConfig, getWorkTasks, metricHistory, qualityMetrics, repositoryConfig, reusableAssets, stageTemplates, updateWorkTaskStatus, type HubRecord, type PracticeImprovement, type RuntimeMode, type WorkTask, type WorkTaskStatus } from "./data/repository";
 import "./index.css";
 
 const nav = [
@@ -421,9 +421,11 @@ function App() {
   const [role, setRole] = useState<Role>(() => (window.localStorage.getItem("dpdh-role") as Role) || "Engagement Manager");
   const [language, setLanguage] = useState<Language>(() => (window.localStorage.getItem("dpdh-language") as Language) || "English");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>(repositoryConfig.runtimeMode);
   const [guided, setGuided] = useState(() => window.localStorage.getItem("dpdh-guided") !== "off");
   const [showWelcome, setShowWelcome] = useState(() => window.localStorage.getItem("dpdh-guided-seen") !== "yes");
   const connection = getConnectionReadiness();
+  const runtime = getRuntimeConfig();
   const [improvements, setImprovements] = useState<PracticeImprovement[]>(() => getPracticeImprovements());
   const visibleNav = zoneModules[zone].filter((item) => roleModules[role].includes(item));
   const selectedEngagement = seed.engagements.find((engagement) => engagement.id === engagementId) ?? seed.engagements[0];
@@ -537,6 +539,9 @@ function App() {
 
       <main className="main" aria-label={labels.title}>
         <div className="context-bar">
+          <span className={`runtime-badge ${runtimeMode === "live" ? "runtime-live" : "runtime-demo"}`}>
+            {runtimeMode === "live" ? "Live mode" : "Demo mode"}
+          </span>
           <label className="engagement-context">
             <span>Engagement</span>
             <select aria-label="Active engagement context" value={selectedEngagement?.id} onChange={(event) => setEngagementId(event.target.value)}>
@@ -555,7 +560,9 @@ function App() {
           <span>{labels.currentRole}: <strong>{role}</strong></span>
           <button type="button" onClick={() => setSettingsOpen(true)}>Settings</button>
         </div>
-        {page === "Command Center" ? (
+        {runtimeMode === "live" && !runtime.canUseLiveData ? (
+          <LiveModeGate onReturnToDemo={() => setRuntimeMode("demo")} />
+        ) : page === "Command Center" ? (
           <>
             <div className="hero">
               <div>
@@ -723,6 +730,13 @@ function App() {
               <span><strong>Guided mode</strong><small>Show onboarding cues and helpful explanations.</small></span>
             </label>
             <label className="settings-field">
+              Environment mode
+              <select value={runtimeMode} onChange={(event) => setRuntimeMode(event.target.value as RuntimeMode)}>
+                <option value="demo">Demo — synthetic/local data</option>
+                <option value="live">Live — approved adapter required</option>
+              </select>
+            </label>
+            <label className="settings-field">
               {labels.role}
               <select value={role} onChange={(event) => changeRole(event.target.value as Role)}>
                 {roleOptions.map((option) => <option key={option}>{option}</option>)}
@@ -755,6 +769,21 @@ function ValueProposition({ role }: { role: Role }) {
         <p>Teams, SharePoint, Planner, Outlook, OneNote, Power BI, and PowerPoint remain useful sources. The Hub connects their delivery signals to ownership, evidence, stage decisions, and outcomes.</p>
         <small>Source of truth: governed delivery records · Evidence: authoritative links · Intelligence: explainable signals</small>
       </div>
+    </section>
+  );
+}
+
+function LiveModeGate({ onReturnToDemo }: { onReturnToDemo: () => void }) {
+  return (
+    <section className="card live-mode-gate" aria-labelledby="live-mode-title">
+      <div className="label accent">Live environment boundary</div>
+      <h1 id="live-mode-title">Live mode is not connected</h1>
+      <p>No approved Dataverse/SharePoint adapter is configured for this build. The Hub has intentionally stopped before loading or writing data.</p>
+      <div className="live-mode-checklist">
+        <strong>Developer handoff</strong>
+        <span>Implement the repository adapter, environment variables, Entra/Dataverse authorization, audit, approvals, monitoring, and release evidence before enabling live mode.</span>
+      </div>
+      <button className="primary-button" type="button" onClick={onReturnToDemo}>Return to Demo mode</button>
     </section>
   );
 }

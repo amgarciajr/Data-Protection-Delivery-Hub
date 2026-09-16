@@ -1,5 +1,7 @@
 # Data connection readiness
 
+The application now has an explicit Demo/Live environment boundary. Demo is the safe default. Live mode is selectable for walkthroughs of the future integration path, but the current build fails closed because no live adapter is implemented.
+
 The prototype is intentionally disconnected from live services. It uses synthetic records with optional browser-local persistence so the UX and governance flows can be demonstrated safely.
 
 For the complete Avanade rollout sequence, ownership model, environment strategy, Dataverse/SharePoint mapping, security, ALM, validation, and cutover checklist, see `docs/AVANADE_INTEGRATION_GUIDE.md`.
@@ -30,3 +32,4 @@ When the target environment is approved:
 - No client data, credentials, secrets, tenant identifiers, or production endpoints are included.
 - Browser-local persistence is demonstration storage only and is not authoritative.
 - Synthetic records must be removed or isolated before shared or production deployment.
+- `VITE_HUB_MODE=live` must not be enabled in a deployed environment until the adapter contract, authorization, audit, approvals, monitoring, and release evidence are complete.

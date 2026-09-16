@@ -24,7 +24,7 @@ npm install
 npm run dev
 ```
 
-The app intentionally uses synthetic data and browser-local persistence. It is not a production deployment. Dataverse, SharePoint, Entra security, audit, retention, ALM, monitoring, and support controls must be configured and tested before live use.
+The app defaults to Demo mode and intentionally uses synthetic data and browser-local persistence. It is not a production deployment. Copy `apps/data-protection-delivery-hub/.env.example` only for an approved build configuration. `VITE_HUB_MODE=live` currently fails closed because no production adapter is implemented; do not add secrets to Vite environment variables. See the [implementation requirements](docs/IMPLEMENTATION_REQUIREMENTS.md) for the development handoff contract.
 
 ## Key documentation
 
@@ -36,5 +36,6 @@ The app intentionally uses synthetic data and browser-local persistence. It is n
 - [CSA delivery consistency case](docs/CSA_DELIVERY_CONSISTENCY_CASE.md)
 - [Controlled pilot proposal](docs/CONTROLLED_PILOT_PROPOSAL.md)
 - [Phase 1 validation plan](docs/PHASE_1_VALIDATION_PLAN.md)
+- [Implementation requirements and expectations](docs/IMPLEMENTATION_REQUIREMENTS.md)
 - [User guide](docs/USER_GUIDE.md)
 - [Support runbook](docs/SUPPORT_RUNBOOK.md)

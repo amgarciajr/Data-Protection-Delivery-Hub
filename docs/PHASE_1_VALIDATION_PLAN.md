@@ -139,3 +139,5 @@ Store or link:
 5. responsive/accessibility findings;
 6. known limitations and accepted risks;
 7. owner and date for each unresolved item.
+8. Demo/Live indicator and Live-mode fail-closed evidence;
+9. evidence that Live never silently falls back to synthetic data.

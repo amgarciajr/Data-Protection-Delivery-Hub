@@ -1,5 +1,7 @@
 # Production readiness checklist
 
+The Demo/Live control is an environment boundary, not a production switch. The current build must remain in Demo mode because the live adapter is not implemented.
+
 ## Current evaluation
 
 **Status: Not ready for production.** The current application is a validated synthetic/local prototype. It is suitable for controlled design review and non-production pilot planning, but live data must not be connected until the controls below are implemented and evidenced.
@@ -14,6 +16,7 @@ Use `PRODUCTION_EVALUATION.md` for the assessment and release recommendation, `U
 ## Platform
 - Dedicated development, test, and production strategy approved.
 - Solution, publisher, environment variables, and connection references configured.
+- Release mode is explicitly selected and validated; Live fails closed when adapter health or required configuration is missing.
 - Data policies and approved connectors confirmed.
 - Dataverse capacity and licensing confirmed.
 
