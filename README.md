@@ -2,6 +2,12 @@
 
 Synthetic/local prototype and Avanade integration planning package for improving Data Protection delivery quality and consistency.
 
+## Open the app
+
+**Live app:** [Open the Data Protection Delivery Hub](https://amgarciajr.github.io/Data-Protection-Delivery-Hub/)
+
+If the link has not deployed yet, open the repository **Actions** tab and wait for **Deploy Data Protection Delivery Hub** to complete. The GitHub repository page opens this README by design; the link above opens the application.
+
 ## Contents
 
 - `apps/data-protection-delivery-hub/` — React/Vite source application
