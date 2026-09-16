@@ -4,6 +4,8 @@
 
 The Data Protection Delivery Hub is presented as a practice improvement operating system, not as a collection of disconnected module screens. The primary leadership question is: **does this help the practice deliver better, more consistently, with evidence that supports decisions?**
 
+The Data Protection Hub should be presented as the first validated domain experience in a composable consulting delivery ecosystem. See `ECOSYSTEM_CORE_BLUEPRINT.md` for the shared-core, domain-pack, and incremental adoption model.
+
 ## Role-based expectations
 
 The prototype uses role expectations rather than personal assumptions:
