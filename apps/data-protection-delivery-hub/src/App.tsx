@@ -296,6 +296,28 @@ function Pill({ v }: { v: string }) {
   return <span className={`pill ${v}`}>{v}</span>;
 }
 
+function InfoTip({ text }: { text: string }) {
+  return <span className="info-tip" tabIndex={0} aria-label={text}>i<span role="tooltip">{text}</span></span>;
+}
+
+function GuidedWelcome({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="guided-backdrop" role="presentation">
+      <section className="guided-card" role="dialog" aria-modal="true" aria-labelledby="guided-title">
+        <div className="guided-kicker">Welcome to the Hub</div>
+        <h2 id="guided-title">A guided way to move delivery forward</h2>
+        <p>Start with the action in front of you, prove it with evidence, and use the lifecycle to make readiness and handoff clear.</p>
+        <div className="guided-steps">
+          <div><strong>1 · Start</strong><span>Use Command Center or My Work to see what needs attention.</span></div>
+          <div><strong>2 · Deliver</strong><span>Keep the engagement, owner, stage, and next outcome in context.</span></div>
+          <div><strong>3 · Prove</strong><span>Connect decisions and evidence before moving through a gate.</span></div>
+        </div>
+        <button className="primary-button" type="button" onClick={onClose}>Start exploring</button>
+      </section>
+    </div>
+  );
+}
+
 function PracticeImprovementPanel({ improvements, onAdded }: { improvements: PracticeImprovement[]; onAdded: (item: PracticeImprovement) => void }) {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
@@ -399,6 +421,8 @@ function App() {
   const [role, setRole] = useState<Role>(() => (window.localStorage.getItem("dpdh-role") as Role) || "Engagement Manager");
   const [language, setLanguage] = useState<Language>(() => (window.localStorage.getItem("dpdh-language") as Language) || "English");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [guided, setGuided] = useState(() => window.localStorage.getItem("dpdh-guided") !== "off");
+  const [showWelcome, setShowWelcome] = useState(() => window.localStorage.getItem("dpdh-guided-seen") !== "yes");
   const connection = getConnectionReadiness();
   const [improvements, setImprovements] = useState<PracticeImprovement[]>(() => getPracticeImprovements());
   const visibleNav = zoneModules[zone].filter((item) => roleModules[role].includes(item));
@@ -418,6 +442,12 @@ function App() {
   useEffect(() => { window.localStorage.setItem("dpdh-theme", theme); }, [theme]);
   useEffect(() => { window.localStorage.setItem("dpdh-role", role); }, [role]);
   useEffect(() => { window.localStorage.setItem("dpdh-language", language); }, [language]);
+  useEffect(() => { window.localStorage.setItem("dpdh-guided", guided ? "on" : "off"); }, [guided]);
+
+  function closeWelcome() {
+    setShowWelcome(false);
+    window.localStorage.setItem("dpdh-guided-seen", "yes");
+  }
 
   function changeRole(nextRole: Role | "All modules") {
     if (nextRole === "All modules") {
@@ -480,6 +510,7 @@ function App() {
               key={item}
               type="button"
               className={`zone-button ${zone === item ? "active" : ""}`}
+              title={guided ? `Open the ${item} journey zone` : undefined}
               onClick={() => {
                 setZone(item);
                 const firstAvailable = zoneModules[item].find((module) => roleModules[role].includes(module));
@@ -508,13 +539,13 @@ function App() {
         <div className="context-bar">
           <label className="engagement-context">
             <span>Engagement</span>
-            <select value={selectedEngagement?.id} onChange={(event) => setEngagementId(event.target.value)}>
+            <select aria-label="Active engagement context" value={selectedEngagement?.id} onChange={(event) => setEngagementId(event.target.value)}>
               {seed.engagements.map((engagement) => <option key={engagement.id} value={engagement.id}>{engagement.name}</option>)}
             </select>
           </label>
           <div className="global-search">
             <label htmlFor="hub-search" className="sr-only">Search the Hub</label>
-            <input id="hub-search" type="search" value={search} placeholder="Search modules and actions" onChange={(event) => setSearch(event.target.value)} />
+            <input id="hub-search" type="search" value={search} placeholder="Search modules and actions" title="Find a workspace by name or description" onChange={(event) => setSearch(event.target.value)} />
             {searchResults.length > 0 && (
               <div className="search-results">
                 {searchResults.map((result) => <button type="button" key={result} onClick={() => openModule(result)}><strong>{result}</strong><small>{descriptions[result]}</small></button>)}
@@ -528,7 +559,7 @@ function App() {
           <>
             <div className="hero">
               <div>
-                <div className="label accent">Practice delivery operating system</div>
+                <div className="label accent">Practice delivery operating system <InfoTip text="The Hub connects work, evidence, decisions, readiness, and outcomes without replacing the tools teams already use." /></div>
                 <h1>Command Center</h1>
                 <div>Trace scope, ownership, decisions, risk, evidence, readiness, and outcomes.</div>
               </div>
@@ -542,7 +573,7 @@ function App() {
             </div>
 
             <ValueProposition role={role} />
-            <WorkflowOverview />
+            <WorkflowOverview guided={guided} />
             <IntelligencePanel />
 
             <div className="metrics-grid">
@@ -687,6 +718,10 @@ function App() {
                 <option>Español</option>
               </select>
             </label>
+            <label className="guided-toggle">
+              <input type="checkbox" checked={guided} onChange={(event) => setGuided(event.target.checked)} />
+              <span><strong>Guided mode</strong><small>Show onboarding cues and helpful explanations.</small></span>
+            </label>
             <label className="settings-field">
               {labels.role}
               <select value={role} onChange={(event) => changeRole(event.target.value as Role)}>
@@ -698,6 +733,7 @@ function App() {
           </section>
         </div>
       )}
+      {showWelcome && guided && <GuidedWelcome onClose={closeWelcome} />}
     </div>
   );
 }
@@ -723,7 +759,7 @@ function ValueProposition({ role }: { role: Role }) {
   );
 }
 
-function WorkflowOverview() {
+function WorkflowOverview({ guided }: { guided: boolean }) {
   return (
     <section className="card workflow-overview" aria-labelledby="workflow-title">
       <div className="records-heading">
@@ -738,7 +774,7 @@ function WorkflowOverview() {
         {lifecycleStages.map((item, index) => (
           <div className="lifecycle-step" key={item.stage}>
             <span className="lifecycle-number">{index + 1}</span>
-            <strong>{item.stage}</strong>
+            <strong>{item.stage} {guided && <InfoTip text={`Expected output: ${item.output}`} />}</strong>
             <small>{item.output}</small>
           </div>
         ))}

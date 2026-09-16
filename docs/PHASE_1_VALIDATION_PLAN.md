@@ -98,6 +98,21 @@ Acceptance criteria:
 
 **Evidence:** viewport list, findings, screenshots, and remediation status.
 
+### 7. Guided onboarding and tooltip test
+
+**Objective:** help a new user understand the product without adding friction for an experienced user.
+
+- Clear local demo preferences or use a fresh browser profile.
+- Confirm the welcome walkthrough appears once when Guided mode is enabled.
+- Confirm **Start exploring** closes the walkthrough and that it does not reappear after refresh.
+- Open settings, turn Guided mode off, and confirm onboarding cues are removed.
+- Turn Guided mode back on and confirm the preference persists locally.
+- Hover and keyboard-focus each visible **i** marker and confirm the explanation is readable.
+- Confirm tooltip text does not obscure the action being explained and remains usable on mobile width.
+- Confirm reduced-motion preferences do not introduce distracting animation.
+
+**Evidence:** first-use screenshot, guided-mode preference result, tooltip keyboard result, and any usability findings.
+
 ## Exit decision
 
 Phase 1 may be accepted as a prototype increment when:
@@ -108,6 +123,7 @@ Phase 1 may be accepted as a prototype increment when:
 - engagement context and search behave as documented;
 - no live data or connector boundary is weakened;
 - accessibility and responsive findings are recorded;
+- Guided mode and tooltip behavior are understandable and keyboard accessible;
 - the evidence pack is linked to the release commit.
 
 Phase 1 must not be promoted to a production go-live decision. The next gate is a governed foundation validation covering Dataverse relationships, SharePoint evidence, server-side authorization, audit, approvals, and idempotent automation.

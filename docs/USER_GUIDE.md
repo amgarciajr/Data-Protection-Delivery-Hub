@@ -26,6 +26,12 @@ The Hub is organized into five experience zones:
 8. Use the relevant module to update the authoritative delivery record.
 9. Use **Administration** for configuration, connection readiness, stage templates, reuse governance, role mapping, and audit information.
 
+## Guided mode and helpful explanations
+
+On first use, Guided mode opens a short welcome walkthrough covering **Start**, **Deliver**, and **Prove**. Close it with **Start exploring**; the choice is remembered in this browser. Reopen settings to turn Guided mode on or off.
+
+When Guided mode is enabled, hover or focus on the small **i** markers beside unfamiliar concepts to see plain-language explanations. Tooltips are also keyboard-focusable. They explain the delivery model without changing the underlying records or decision rights.
+
 ## Command Center
 
 Use Command Center for leadership and delivery reviews:
@@ -82,7 +88,7 @@ Never publish client-confidential material as a practice asset. Confirm sanitiza
 
 ## Settings and roles
 
-The demonstration settings pane supports language, theme, and role-based navigation. Zone and workspace visibility are usability aids, not security controls. In production, Entra identity, Dataverse roles, teams, field security, and server-side checks determine access.
+The demonstration settings pane supports language, theme, Guided mode, and role-based navigation. Zone and workspace visibility are usability aids, not security controls. In production, Entra identity, Dataverse roles, teams, field security, and server-side checks determine access.
 
 ## Phase 1 demonstration boundary
 

@@ -229,6 +229,124 @@ button:focus-visible {
   padding: 4px;
 }
 
+.info-tip {
+  align-items: center;
+  background: #ffb314;
+  border-radius: 50%;
+  color: #333;
+  cursor: help;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 800;
+  height: 16px;
+  justify-content: center;
+  margin-left: 5px;
+  position: relative;
+  vertical-align: middle;
+  width: 16px;
+}
+
+.info-tip > [role="tooltip"] {
+  background: #333;
+  border: 1px solid #666;
+  border-radius: 7px;
+  bottom: calc(100% + 8px);
+  color: #fff;
+  display: none;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  padding: 9px 11px;
+  position: absolute;
+  right: 0;
+  width: 240px;
+  z-index: 20;
+}
+
+.info-tip:hover > [role="tooltip"],
+.info-tip:focus > [role="tooltip"] {
+  display: block;
+}
+
+.guided-backdrop {
+  align-items: flex-start;
+  background: #17253688;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 12vh 20px 20px;
+  position: fixed;
+  z-index: 30;
+}
+
+.guided-card {
+  background: #fff;
+  border-top: 5px solid #ff5800;
+  border-radius: 14px;
+  box-shadow: 0 18px 50px #0004;
+  max-width: 620px;
+  padding: 28px;
+  width: 100%;
+}
+
+.guided-kicker {
+  color: #dc4600;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.guided-card h2 {
+  margin: 8px 0;
+}
+
+.guided-card > p {
+  color: #555;
+  margin: 0 0 18px;
+}
+
+.guided-steps {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.guided-steps > div {
+  background: #fff4ed;
+  border-left: 3px solid #ff5800;
+  border-radius: 7px;
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+}
+
+.guided-steps span {
+  color: #555;
+  font-size: 13px;
+}
+
+.guided-toggle {
+  align-items: flex-start;
+  display: flex;
+  gap: 9px;
+  margin: 18px 0;
+}
+
+.guided-toggle input {
+  accent-color: #ff5800;
+  margin-top: 3px;
+}
+
+.guided-toggle span {
+  display: grid;
+  gap: 2px;
+}
+
+.guided-toggle small {
+  color: #666;
+}
+
 .hero {
   background: linear-gradient(135deg, #ffb314, #ff5800);
   color: white;
@@ -1265,6 +1383,21 @@ button:focus-visible {
 .theme-dark .settings-note,
 .theme-dark .close-button {
   color: #cccccc;
+}
+
+.theme-dark .guided-card {
+  background: #172536;
+  color: #e6edf5;
+}
+
+.theme-dark .guided-card > p,
+.theme-dark .guided-steps span,
+.theme-dark .guided-toggle small {
+  color: #c4d5e1;
+}
+
+.theme-dark .guided-steps > div {
+  background: #3b2f1c;
 }
 
 .theme-dark .settings-pane {
