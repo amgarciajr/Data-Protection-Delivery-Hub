@@ -28,3 +28,4 @@ The current application remains synthetic/local until these controls are approve
 Detailed implementation and cutover guidance is maintained in `docs/AVANADE_INTEGRATION_GUIDE.md`.
 Phase 1 validation steps and evidence requirements are maintained in `docs/PHASE_1_VALIDATION_PLAN.md`.
 The cross-domain expansion model is maintained in `docs/ECOSYSTEM_CORE_BLUEPRINT.md`.
+The delivery-consistency rationale and pilot decision package are maintained in `docs/CSA_DELIVERY_CONSISTENCY_CASE.md` and `docs/CONTROLLED_PILOT_PROPOSAL.md`.
