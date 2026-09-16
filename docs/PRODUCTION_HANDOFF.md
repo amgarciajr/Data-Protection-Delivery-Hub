@@ -2,6 +2,8 @@
 
 ## P0: governed delivery experience
 
+- Validate the Phase 1 five-zone navigation with representative consultant, engagement manager, practice leader, and director scenarios.
+- Confirm the engagement context and search controls improve orientation without implying live integration.
 - Approve lifecycle stage templates and definitions of done.
 - Map tasks to engagements, workstreams, requirements, evidence, risks, decisions, and deliverables.
 - Configure role-based transitions and human approval boundaries.
@@ -24,3 +26,4 @@
 The current application remains synthetic/local until these controls are approved and verified.
 
 Detailed implementation and cutover guidance is maintained in `docs/AVANADE_INTEGRATION_GUIDE.md`.
+Phase 1 validation steps and evidence requirements are maintained in `docs/PHASE_1_VALIDATION_PLAN.md`.

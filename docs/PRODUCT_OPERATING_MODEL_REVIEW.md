@@ -68,9 +68,9 @@ The Hub must not force users to duplicate content that already exists. If an int
 | Close | Did we deliver the commitment? | Acceptance, outcomes, open backlog, lessons | Closed engagement |
 | Operate | Did it create value? | Benefits, adoption, incidents, lessons, reuse | Outcome review |
 
-### Navigation recommendation
+### Navigation implementation status
 
-Replace a flat 16-module first impression with five experience zones:
+Phase 1 implements the five-zone first experience. The detailed modules remain available within each zone and continue to be filtered by the selected demonstration role:
 
 1. **Start** — Command Center, My Work, universal search, alerts.
 2. **Deliver** — Engagements, lifecycle, workstreams, milestones, RAID, decisions.
@@ -79,6 +79,15 @@ Replace a flat 16-module first impression with five experience zones:
 5. **Improve** — Practice intelligence, reusable assets, improvement actions, administration.
 
 Keep the detailed modules available through contextual tabs and search, but do not make new users understand the data model before they can act.
+
+The current implementation also provides:
+
+- persistent synthetic engagement context in the header;
+- cross-module search over available workspace modules and descriptions;
+- automatic navigation to the correct zone when a search result is selected;
+- responsive context controls for smaller screens.
+
+This improves orientation but does not yet create relationship-aware records or live engagement filtering. Those remain production-foundation work.
 
 ### Stage-gate model
 

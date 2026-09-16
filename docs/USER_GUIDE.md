@@ -6,12 +6,25 @@ Use the Hub to make delivery work, ownership, evidence, readiness, decisions, an
 
 ## Start here
 
-1. Open **Command Center** to understand portfolio health, quality signals, risks, readiness, and practice-improvement actions.
-2. Open **My Work** to work from assigned lifecycle tasks.
-3. Select a task stage and status to focus the queue.
-4. For each task, confirm the expected outcome, required evidence, owner, due date, blocker, and definition of done.
-5. Use the relevant module to update the authoritative delivery record.
-6. Use **Administration** for configuration, connection readiness, stage templates, reuse governance, role mapping, and audit information.
+The Hub is organized into five experience zones:
+
+| Zone | Use it for |
+| --- | --- |
+| **Start** | Command Center, My Work, alerts, and the next action |
+| **Deliver** | Intake, engagements, discovery, scope, execution, RAID, and decisions |
+| **Prove** | Architecture, controls, testing, evidence, and readiness |
+| **Transition** | Deliverables, operational handoff, acceptance, and support readiness |
+| **Improve** | Reusable knowledge, practice intelligence, improvement actions, and administration |
+
+1. Select the relevant zone, then choose a workspace module visible for your role.
+2. Use the **Engagement** selector to keep the active engagement in context.
+3. Use **Search modules and actions** to find an available workspace without browsing every module.
+4. Open **Command Center** to understand portfolio health, quality signals, risks, readiness, and practice-improvement actions.
+5. Open **My Work** to work from assigned lifecycle tasks.
+6. Select a task stage and status to focus the queue.
+7. For each task, confirm the expected outcome, required evidence, owner, due date, blocker, and definition of done.
+8. Use the relevant module to update the authoritative delivery record.
+9. Use **Administration** for configuration, connection readiness, stage templates, reuse governance, role mapping, and audit information.
 
 ## Command Center
 
@@ -69,7 +82,11 @@ Never publish client-confidential material as a practice asset. Confirm sanitiza
 
 ## Settings and roles
 
-The demonstration settings pane supports language, theme, and role-based navigation. In production, the selected role is not a security boundary. Entra identity, Dataverse roles, teams, field security, and server-side checks determine access.
+The demonstration settings pane supports language, theme, and role-based navigation. Zone and workspace visibility are usability aids, not security controls. In production, Entra identity, Dataverse roles, teams, field security, and server-side checks determine access.
+
+## Phase 1 demonstration boundary
+
+The engagement selector, search, role preferences, and locally created records are demonstration features backed by synthetic data and browser-local persistence. They do not connect or synchronize with Dataverse, SharePoint, Teams, Planner, Outlook, OneNote, Power BI, or Copilot.
 
 ## What to do when something is wrong
 
