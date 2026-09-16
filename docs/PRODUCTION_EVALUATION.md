@@ -7,7 +7,7 @@ The Data Protection Delivery Hub is a strong **validated prototype** and a usefu
 **Release recommendation: Not ready for production.**  
 **Pilot recommendation: Conditional go**, only in a non-production environment with synthetic data and named owners.
 
-This status is a positive control decision, not a negative assessment of the work. For a first-73-days contribution, the solution demonstrates unusually strong progress from concept to working prototype, operating model, governance boundary, integration plan, user guide, and support model. The correct leadership interpretation is **high-value foundation ready for a governed pilot**, not “unfinished application.”
+This status is a positive control decision, not a negative assessment of the work. Since June 6, the solution has demonstrated unusually strong progress from concept to working prototype, operating model, governance boundary, integration plan, user guide, and support model. The correct leadership interpretation is **high-value foundation ready for a governed pilot**, not “unfinished application.”
 
 ## Readiness scorecard
 

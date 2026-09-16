@@ -30,7 +30,7 @@ The app intentionally uses synthetic data and browser-local persistence. It is n
 
 - [Avanade integration guide](docs/AVANADE_INTEGRATION_GUIDE.md)
 - [Production evaluation](docs/PRODUCTION_EVALUATION.md)
-- [First-73-days leadership brief](docs/LEADERSHIP_BRIEF_73_DAYS.md)
+- [Leadership brief — contribution since June 6](docs/LEADERSHIP_BRIEF_73_DAYS.md)
 - [Product operating model review](docs/PRODUCT_OPERATING_MODEL_REVIEW.md)
 - [Phase 1 validation plan](docs/PHASE_1_VALIDATION_PLAN.md)
 - [User guide](docs/USER_GUIDE.md)

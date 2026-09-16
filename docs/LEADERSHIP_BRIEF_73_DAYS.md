@@ -1,4 +1,4 @@
-# Data Protection Delivery Hub — first 73 days leadership brief
+# Data Protection Delivery Hub — contribution since June 6
 
 ## Executive message
 
@@ -16,7 +16,7 @@ The result is not being presented as a finished production application. It is be
 
 ### Initiative and speed to value
 
-The first 73 days produced a working experience, normalized source material, a repository boundary, a leadership-oriented Command Center, a lifecycle-based My Work view, practice-improvement metrics, stage templates, reuse governance, production evaluation, user guidance, support guidance, and an Avanade integration plan.
+Since June 6, this work has produced a working experience, normalized source material, a repository boundary, a leadership-oriented Command Center, a lifecycle-based My Work view, practice-improvement metrics, stage templates, reuse governance, production evaluation, user guidance, support guidance, and an Avanade integration plan.
 
 ### Practice-level thinking
 
@@ -48,7 +48,7 @@ Lead with outcomes, not implementation detail:
 
 ## Suggested director wording
 
-> “In my first 73 days, I focused on turning the Data Protection delivery challenge into a practical operating model. This prototype shows how we can improve consistency by connecting lifecycle work, ownership, evidence, readiness, and reusable practice knowledge. I kept the solution synthetic and documented the controls required for Avanade production use, so the next step is a governed pilot—not an uncontrolled data connection.”
+> “Since joining Avanade on June 6, I have focused on turning the Data Protection delivery challenge into a practical operating model. This prototype shows how we can improve consistency by connecting lifecycle work, ownership, evidence, readiness, and reusable practice knowledge. I kept the solution synthetic and documented the controls required for Avanade production use, so the next step is a governed pilot—not an uncontrolled data connection.”
 
 ## What to ask leadership to decide
 

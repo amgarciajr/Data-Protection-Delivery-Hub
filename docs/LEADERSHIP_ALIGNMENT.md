@@ -32,4 +32,4 @@ The named leadership relationships supplied for the demo are context for present
 
 Lead with the quality outcome, then show the leadership alignment panel, quality metrics, improvement backlog, portfolio health, priority risks, and stage-gate watchlist. Finish with the connection-readiness boundary and the next decisions needed to move from synthetic proof to governed production data.
 
-For the first-73-days leadership narrative, use `LEADERSHIP_BRIEF_73_DAYS.md`.
+For the leadership narrative covering the contribution since June 6, use `LEADERSHIP_BRIEF_73_DAYS.md` (the filename is retained for link compatibility).
