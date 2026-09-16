@@ -1374,6 +1374,11 @@ button:focus-visible {
   .app { grid-template-columns: 1fr; }
   .side { height: auto; position: static; }
   .main { padding: 16px; }
+  .context-bar { align-items: stretch; flex-wrap: wrap; justify-content: flex-start; }
+  .engagement-context { flex-basis: 100%; margin-right: 0; }
+  .engagement-context select { flex: 1; min-width: 0; }
+  .global-search { flex: 1; }
+  .global-search input { min-width: 0; width: 100%; }
   .row { grid-template-columns: 1fr 1fr; }
   .module-grid { grid-template-columns: 1fr; }
   .trace-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
