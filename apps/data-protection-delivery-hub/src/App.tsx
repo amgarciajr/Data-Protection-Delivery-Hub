@@ -39,6 +39,30 @@ const roleModules: Record<Role, ModuleName[]> = {
 
 const roleOptions = Object.keys(roleModules) as Role[];
 
+const roleValue = {
+  Consultant: { title: "Move delivery forward faster", benefit: "Capture evidence once, reduce status reporting, and see exactly what done means.", actions: ["Complete next assigned task", "Attach or request evidence", "Escalate a blocker"] },
+  "Engagement Manager": { title: "Know whether the engagement is safe to advance", benefit: "See scope drift, risks, readiness, decisions, and handoff confidence in one review.", actions: ["Review gate blockers", "Resolve overdue decisions", "Confirm readiness"] },
+  "Practice Leader": { title: "Scale what works across engagements", benefit: "Identify recurring failure patterns, adoption of standards, and where coaching creates leverage.", actions: ["Review quality trends", "Prioritize improvement actions", "Publish reusable assets"] },
+  "Project Manager": { title: "Keep delivery controlled and predictable", benefit: "Coordinate milestones, dependencies, changes, deliverables, and ownership without rebuilding reports.", actions: ["Review milestone health", "Manage scope changes", "Prepare status narrative"] },
+  Architect: { title: "Make decisions traceable and reusable", benefit: "Connect architecture choices to controls, exceptions, tests, evidence, and downstream impact.", actions: ["Resolve design decisions", "Review control mappings", "Coach decision quality"] },
+  "Workstream Lead": { title: "Turn work into reviewable outcomes", benefit: "Organize requirements, configuration, tests, evidence, and defects around a clear definition of done.", actions: ["Close traceability gaps", "Route evidence for review", "Re-sequence blocked work"] },
+  Reviewer: { title: "Review the proof, not the story", benefit: "Focus on evidence quality, deliverable review states, and the criteria that determine readiness.", actions: ["Review evidence queue", "Disposition defects", "Approve or return deliverables"] },
+  "Platform Administrator": { title: "Keep the operating model governed", benefit: "Manage reference data, roles, stage criteria, integrations, audit, and support readiness.", actions: ["Review configuration", "Validate security boundaries", "Monitor automation health"] },
+} satisfies Record<Role, { title: string; benefit: string; actions: string[] }>;
+
+const lifecycleStages = [
+  { stage: "Qualify", output: "Accepted opportunity" },
+  { stage: "Initiate", output: "Charter and team" },
+  { stage: "Discover", output: "Evidence-backed findings" },
+  { stage: "Assess", output: "Prioritized recommendations" },
+  { stage: "Design", output: "Approved design and controls" },
+  { stage: "Build", output: "Validated configuration" },
+  { stage: "Validate", output: "Accepted evidence and tests" },
+  { stage: "Transition", output: "Operational handoff" },
+  { stage: "Close", output: "Accepted outcomes" },
+  { stage: "Operate", output: "Benefits and lessons" },
+];
+
 const descriptions: Record<ModuleName, string> = {
   "Command Center": "Portfolio dashboard for health, readiness, evidence, and delivery signals.",
   "My Work": "Assigned actions, reviews, approvals, risks, evidence requests, and milestones.",
@@ -451,6 +475,10 @@ function App() {
               </div>
             </div>
 
+            <ValueProposition role={role} />
+            <WorkflowOverview />
+            <IntelligencePanel />
+
             <div className="metrics-grid">
               {metrics.map((metric) => (
                 <div className="card" key={metric.label}>
@@ -605,6 +633,80 @@ function App() {
         </div>
       )}
     </div>
+  );
+}
+
+function ValueProposition({ role }: { role: Role }) {
+  const value = roleValue[role];
+  return (
+    <section className="value-proposition" aria-labelledby="value-proposition-title">
+      <div className="value-main">
+        <div className="label accent">Why this exists</div>
+        <h2 id="value-proposition-title">{value.title}</h2>
+        <p>{value.benefit}</p>
+        <div className="value-actions">
+          {value.actions.map((action) => <span key={action}>{action}</span>)}
+        </div>
+      </div>
+      <div className="value-proof">
+        <strong>One operating view instead of seven disconnected tools</strong>
+        <p>Teams, SharePoint, Planner, Outlook, OneNote, Power BI, and PowerPoint remain useful sources. The Hub connects their delivery signals to ownership, evidence, stage decisions, and outcomes.</p>
+        <small>Source of truth: governed delivery records · Evidence: authoritative links · Intelligence: explainable signals</small>
+      </div>
+    </section>
+  );
+}
+
+function WorkflowOverview() {
+  return (
+    <section className="card workflow-overview" aria-labelledby="workflow-title">
+      <div className="records-heading">
+        <div>
+          <div className="label accent">How work flows</div>
+          <h2 id="workflow-title">Every engagement moves from commitment to proof to outcome</h2>
+          <p className="muted">Each stage has an expected output, evidence, decision rights, and an exit condition. A gate protects the next stage from unresolved work.</p>
+        </div>
+        <span className="record-count">10 lifecycle stages</span>
+      </div>
+      <div className="lifecycle-strip">
+        {lifecycleStages.map((item, index) => (
+          <div className="lifecycle-step" key={item.stage}>
+            <span className="lifecycle-number">{index + 1}</span>
+            <strong>{item.stage}</strong>
+            <small>{item.output}</small>
+          </div>
+        ))}
+      </div>
+      <div className="workflow-footer">
+        <span><strong>Readiness:</strong> evidence, tests, ownership, support, and mandatory criteria</span>
+        <span><strong>Decision:</strong> authorized human approval with rationale and audit</span>
+        <span><strong>Learning:</strong> validated lessons become sanitized reusable assets</span>
+      </div>
+    </section>
+  );
+}
+
+function IntelligencePanel() {
+  const signals = [
+    { label: "Likely to fail", value: "Design exception", detail: "Approval overdue; compensating control missing", tone: "Red" },
+    { label: "Decision at risk", value: "Customer ownership", detail: "Confirmation date not recorded", tone: "Amber" },
+    { label: "Evidence gap", value: "Validate & Assure", detail: "12 items submitted; 5 still need review", tone: "Amber" },
+    { label: "Standard opportunity", value: "Transition checklist", detail: "Adoption correlates with cleaner handoffs", tone: "Green" },
+  ];
+  return (
+    <section className="card intelligence-panel" aria-labelledby="intelligence-title">
+      <div className="records-heading">
+        <div>
+          <div className="label accent">System of intelligence</div>
+          <h2 id="intelligence-title">What needs attention before the next status meeting?</h2>
+          <p className="muted">Signals are explainable: each insight points to a source record, owner, and next action. AI may assist; accountable humans decide.</p>
+        </div>
+        <span className="record-count">Advisory signals</span>
+      </div>
+      <div className="intelligence-grid">
+        {signals.map((signal) => <div className="intelligence-item" key={signal.label}><Pill v={signal.tone} /><div><span className="label">{signal.label}</span><strong>{signal.value}</strong><small>{signal.detail}</small></div></div>)}
+      </div>
+    </section>
   );
 }
 
