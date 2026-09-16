@@ -140,6 +140,7 @@ button:focus-visible {
 }
 
 .main {
+  min-width: 0;
   padding: 28px;
   max-width: 1600px;
   width: 100%;
@@ -316,7 +317,8 @@ button:focus-visible {
 }
 
 .info-tip:hover > [role="tooltip"],
-.info-tip:focus > [role="tooltip"] {
+.info-tip:focus > [role="tooltip"],
+.info-tip:focus-within > [role="tooltip"] {
   display: block;
 }
 
@@ -1573,8 +1575,18 @@ button:focus-visible {
 
 @media (max-width: 760px) {
   .app { grid-template-columns: 1fr; }
-  .side { height: auto; position: static; }
+  .side { height: auto; min-width: 0; position: static; }
   .main { padding: 16px; }
+  .engagement-context { min-width: 0; }
+  .engagement-context select { max-width: 100%; width: 0; }
+  .info-tip > [role="tooltip"] {
+    left: 0;
+    right: auto;
+  }
+  .value-main .info-tip > [role="tooltip"] {
+    left: auto;
+    right: 0;
+  }
   .context-bar { align-items: stretch; flex-wrap: wrap; justify-content: flex-start; }
   .engagement-context { flex-basis: 100%; margin-right: 0; }
   .engagement-context select { flex: 1; min-width: 0; }
