@@ -120,6 +120,25 @@ button:focus-visible {
   color: white;
 }
 
+.nav-label {
+  color: #9db4c4;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  margin: 16px 12px 5px;
+  text-transform: uppercase;
+}
+
+.nav .zone-button {
+  color: #ffb314;
+  font-weight: 700;
+}
+
+.nav .zone-button.active {
+  background: #5a3d2c;
+  color: #fff;
+}
+
 .main {
   padding: 28px;
   max-width: 1600px;
@@ -134,6 +153,71 @@ button:focus-visible {
   justify-content: flex-end;
   margin-bottom: 12px;
   gap: 12px;
+  position: relative;
+}
+
+.engagement-context {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+  margin-right: auto;
+}
+
+.engagement-context span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.engagement-context select,
+.global-search input {
+  background: var(--surface, #fff);
+  border: 1px solid #c9c9c9;
+  border-radius: 7px;
+  color: inherit;
+  font-size: 12px;
+  padding: 7px 9px;
+}
+
+.global-search {
+  position: relative;
+}
+
+.global-search input {
+  min-width: 210px;
+}
+
+.search-results {
+  background: var(--surface, #fff);
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px #0002;
+  display: grid;
+  left: 0;
+  min-width: 300px;
+  overflow: hidden;
+  position: absolute;
+  top: calc(100% + 5px);
+  z-index: 5;
+}
+
+.search-results button {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #e5e5e5;
+  cursor: pointer;
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.search-results button:hover {
+  background: #fff4ed;
+}
+
+.search-results small {
+  color: #666;
 }
 
 .context-bar button {

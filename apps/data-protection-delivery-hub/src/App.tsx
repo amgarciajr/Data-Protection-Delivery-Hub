@@ -23,8 +23,19 @@ const nav = [
 ] as const;
 
 type ModuleName = (typeof nav)[number];
+type Zone = "Start" | "Deliver" | "Prove" | "Transition" | "Improve";
 type Role = "Consultant" | "Workstream Lead" | "Architect" | "Project Manager" | "Engagement Manager" | "Reviewer" | "Practice Leader" | "Platform Administrator";
 type Language = "English" | "Español";
+
+const zoneModules: Record<Zone, ModuleName[]> = {
+  Start: ["Command Center", "My Work"],
+  Deliver: ["Pipeline & Intake", "Engagements", "Discovery & Assessment", "Scope & Requirements", "Delivery Execution", "RAID & Decisions"],
+  Prove: ["Architecture & Controls", "Testing & Evidence", "Readiness & Assurance"],
+  Transition: ["Deliverables", "Transition & Operations"],
+  Improve: ["Knowledge & Reuse", "Practice Intelligence", "Administration"],
+};
+
+const zones = Object.keys(zoneModules) as Zone[];
 
 const roleModules: Record<Role, ModuleName[]> = {
   Consultant: ["Command Center", "My Work", "Engagements", "Discovery & Assessment", "Testing & Evidence", "Knowledge & Reuse"],
@@ -381,13 +392,25 @@ function downloadCsv(page: ModuleName, records: HubRecord[]) {
 
 function App() {
   const [page, setPage] = useState<ModuleName>("Command Center");
+  const [zone, setZone] = useState<Zone>("Start");
+  const [engagementId, setEngagementId] = useState(seed.engagements[0]?.id ?? "");
+  const [search, setSearch] = useState("");
   const [theme, setTheme] = useState<"light" | "dark">(() => (window.localStorage.getItem("dpdh-theme") as "light" | "dark") || "light");
   const [role, setRole] = useState<Role>(() => (window.localStorage.getItem("dpdh-role") as Role) || "Engagement Manager");
   const [language, setLanguage] = useState<Language>(() => (window.localStorage.getItem("dpdh-language") as Language) || "English");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const connection = getConnectionReadiness();
   const [improvements, setImprovements] = useState<PracticeImprovement[]>(() => getPracticeImprovements());
-  const visibleNav = roleModules[role];
+  const visibleNav = zoneModules[zone].filter((item) => roleModules[role].includes(item));
+  const selectedEngagement = seed.engagements.find((engagement) => engagement.id === engagementId) ?? seed.engagements[0];
+  const searchResults = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return [];
+    return nav
+      .filter((item) => roleModules[role].includes(item))
+      .filter((item) => `${item} ${descriptions[item]}`.toLowerCase().includes(query))
+      .slice(0, 6);
+  }, [role, search]);
   const labels = language === "Español"
     ? { settings: "Configuración de usuario", role: "Rol", language: "Idioma", close: "Cerrar", currentRole: "Vista de rol", all: "Mostrar todo", title: "Centro de entrega de protección de datos" }
     : { settings: "User settings", role: "Role", language: "Language", close: "Close", currentRole: "Role view", all: "Show all modules", title: "Data Protection Delivery Hub" };
@@ -402,7 +425,17 @@ function App() {
       return;
     }
     setRole(nextRole);
-    if (!roleModules[nextRole].includes(page)) setPage("Command Center");
+    if (!roleModules[nextRole].includes(page)) {
+      setZone("Start");
+      setPage("Command Center");
+    }
+  }
+
+  function openModule(nextPage: ModuleName) {
+    const nextZone = zones.find((candidate) => zoneModules[candidate].includes(nextPage));
+    if (nextZone) setZone(nextZone);
+    setPage(nextPage);
+    setSearch("");
   }
 
   const metrics = useMemo(
@@ -441,13 +474,29 @@ function App() {
         </div>
 
         <nav className="nav">
+          <div className="nav-label">Experience</div>
+          {zones.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={`zone-button ${zone === item ? "active" : ""}`}
+              onClick={() => {
+                setZone(item);
+                const firstAvailable = zoneModules[item].find((module) => roleModules[role].includes(module));
+                if (firstAvailable) setPage(firstAvailable);
+              }}
+            >
+              {item}
+            </button>
+          ))}
+          <div className="nav-label">Workspace</div>
           {visibleNav.map((item) => (
             <button
               key={item}
               type="button"
               className={page === item ? "active" : ""}
               aria-current={page === item ? "page" : undefined}
-              onClick={() => setPage(item)}
+              onClick={() => openModule(item)}
             >
               {item}
             </button>
@@ -457,6 +506,21 @@ function App() {
 
       <main className="main" aria-label={labels.title}>
         <div className="context-bar">
+          <label className="engagement-context">
+            <span>Engagement</span>
+            <select value={selectedEngagement?.id} onChange={(event) => setEngagementId(event.target.value)}>
+              {seed.engagements.map((engagement) => <option key={engagement.id} value={engagement.id}>{engagement.name}</option>)}
+            </select>
+          </label>
+          <div className="global-search">
+            <label htmlFor="hub-search" className="sr-only">Search the Hub</label>
+            <input id="hub-search" type="search" value={search} placeholder="Search modules and actions" onChange={(event) => setSearch(event.target.value)} />
+            {searchResults.length > 0 && (
+              <div className="search-results">
+                {searchResults.map((result) => <button type="button" key={result} onClick={() => openModule(result)}><strong>{result}</strong><small>{descriptions[result]}</small></button>)}
+              </div>
+            )}
+          </div>
           <span>{labels.currentRole}: <strong>{role}</strong></span>
           <button type="button" onClick={() => setSettingsOpen(true)}>Settings</button>
         </div>
@@ -472,6 +536,8 @@ function App() {
                 <strong>Demo mode</strong>
                 <br />
                 <small>{connection.mode === "local" ? "Synthetic + local browser persistence" : "Synthetic data only"}</small>
+                <br />
+                <small>{selectedEngagement?.stage} · {selectedEngagement?.health} health</small>
               </div>
             </div>
 
