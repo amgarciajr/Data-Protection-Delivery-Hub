@@ -43,6 +43,7 @@ Use Command Center for leadership and delivery reviews:
 - **Engagement portfolio:** review stage, health, and progress.
 - **Priority risks:** identify items needing action or escalation.
 - **Stage gate watchlist:** identify gates that are blocked or conditional.
+- **Stage documentation generator:** turn the stage template, My Work tasks, stage gates, and the selected engagement into readable stage documentation.
 
 Metrics in the current demonstration are synthetic. Treat them as a presentation model until production metric lineage is configured.
 
@@ -76,6 +77,16 @@ Do not mark work complete merely because a file exists. The evidence must be aut
 ## Lifecycle expectations
 
 Use the stage template for the current engagement. Confirm required inputs, expected outputs, decision rights, and exit criteria before progressing. A stage gate cannot be treated as Green when a mandatory criterion is unresolved.
+
+### Generating stage documentation
+
+In **Command Center**, the **Stage documentation generator** card lets you pick one of the four templated stages (Discover, Design, Validate, Transition) for the currently selected engagement and produce readable, ready-to-share documentation covering:
+
+- Purpose, required inputs, expected outputs, decision rights, and exit criteria (from the stage template)
+- Known gaps derived from current demo data (missing/blocked tasks, unaccepted evidence, stage gate status, and — for the engagement's current stage — low readiness/evidence coverage or non-Green health)
+- Evidence to gather, owners and due dates, and suggested next actions
+
+Use **Generate documentation** to assemble the output from local data only, **Copy to clipboard** to paste it elsewhere, and **Download .md** / **Download .txt** to save a file. Everything is computed locally from the demo template, stage gates, My Work tasks, and the selected engagement — no live connector or network call is made, even when Live mode is selected, so the Demo/Live boundary is preserved.
 
 ## Evidence and deliverables
 

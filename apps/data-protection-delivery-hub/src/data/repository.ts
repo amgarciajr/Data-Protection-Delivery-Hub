@@ -85,10 +85,33 @@ export type AuditEvent = {
 
 export type StageTemplate = {
   stage: string;
+  purpose: string;
   requiredInputs: string[];
   expectedOutputs: string[];
   decisionRights: string;
   exitCriteria: string;
+};
+
+export type StageGateSummary = {
+  name: string;
+  status: string;
+  owner: string;
+  note: string;
+};
+
+export type StageDocumentationContext = {
+  stage: string;
+  engagementName: string;
+  engagementStage: string;
+  engagementHealth: string;
+  engagementOwner: string;
+  engagementProgress: number;
+  engagementReadiness: number;
+  engagementEvidence: number;
+  workTasks: WorkTask[];
+  stageGates: StageGateSummary[];
+  runtimeMode: RuntimeMode;
+  generatedAt?: Date;
 };
 
 export type ReusableAsset = {
@@ -231,10 +254,10 @@ export const metricHistory: Record<string, number[]> = {
 };
 
 export const stageTemplates: StageTemplate[] = [
-  { stage: "Discover", requiredInputs: ["Approved charter", "Workshop plan", "Evidence request register"], expectedOutputs: ["Current-state findings", "Validated questions", "Initial risks"], decisionRights: "Workstream Lead prepares; Engagement Manager confirms scope", exitCriteria: "Findings reviewed and evidence gaps owned" },
-  { stage: "Design", requiredInputs: ["Approved requirements", "Architecture options", "Control mappings"], expectedOutputs: ["Approved design", "Decision log", "Exception records"], decisionRights: "Architect approves design; authorized approver accepts exceptions", exitCriteria: "Mandatory design criteria green and decisions recorded" },
-  { stage: "Validate", requiredInputs: ["Test plan", "Configured controls", "Evidence register"], expectedOutputs: ["Test results", "Defect disposition", "Readiness recommendation"], decisionRights: "Reviewer validates evidence; Engagement Manager recommends gate outcome", exitCriteria: "Mandatory tests passed and evidence accepted" },
-  { stage: "Transition", requiredInputs: ["Runbooks", "Support model", "Training plan"], expectedOutputs: ["Handoff acceptance", "Named operators", "Hypercare plan"], decisionRights: "Engagement Manager confirms acceptance with customer owner", exitCriteria: "Primary and backup operators confirm readiness" },
+  { stage: "Discover", purpose: "Build an evidence-backed understanding of the current state so scope and risk are grounded in fact, not assumption.", requiredInputs: ["Approved charter", "Workshop plan", "Evidence request register"], expectedOutputs: ["Current-state findings", "Validated questions", "Initial risks"], decisionRights: "Workstream Lead prepares; Engagement Manager confirms scope", exitCriteria: "Findings reviewed and evidence gaps owned" },
+  { stage: "Design", purpose: "Turn approved requirements into an architecture and control set that is fit for purpose, reviewed, and formally approved.", requiredInputs: ["Approved requirements", "Architecture options", "Control mappings"], expectedOutputs: ["Approved design", "Decision log", "Exception records"], decisionRights: "Architect approves design; authorized approver accepts exceptions", exitCriteria: "Mandatory design criteria green and decisions recorded" },
+  { stage: "Validate", purpose: "Prove the design and configuration work as intended with reviewed evidence before recommending a go/no-go.", requiredInputs: ["Test plan", "Configured controls", "Evidence register"], expectedOutputs: ["Test results", "Defect disposition", "Readiness recommendation"], decisionRights: "Reviewer validates evidence; Engagement Manager recommends gate outcome", exitCriteria: "Mandatory tests passed and evidence accepted" },
+  { stage: "Transition", purpose: "Hand off a supportable solution to named operators with the runbooks, training, and support model they need to accept it.", requiredInputs: ["Runbooks", "Support model", "Training plan"], expectedOutputs: ["Handoff acceptance", "Named operators", "Hypercare plan"], decisionRights: "Engagement Manager confirms acceptance with customer owner", exitCriteria: "Primary and backup operators confirm readiness" },
 ];
 
 export const reusableAssets: ReusableAsset[] = [
@@ -434,4 +457,113 @@ export function getRuntimeConfig() {
     liveAdapterConfigured: repositoryConfig.liveAdapterConfigured,
     canUseLiveData: false,
   };
+}
+
+function findStageGate(stage: string, gates: StageGateSummary[]): StageGateSummary | undefined {
+  return gates.find((gate) => gate.name.toLowerCase().includes(stage.toLowerCase()));
+}
+
+// Assembles readable stage documentation entirely from local/synthetic data (stage templates,
+// My Work tasks, stage gates, and the selected engagement). No live connector calls are made,
+// so this keeps the Demo/Live boundary intact regardless of the active runtime mode.
+export function generateStageDocumentation(context: StageDocumentationContext): string {
+  const template = stageTemplates.find((item) => item.stage === context.stage);
+  const generatedAt = context.generatedAt ?? new Date();
+  const stageTasks = context.workTasks.filter((task) => task.stage === context.stage);
+  const gate = findStageGate(context.stage, context.stageGates);
+  const engagementOnStage = context.engagementStage === context.stage;
+
+  const gaps: string[] = [];
+  if (stageTasks.length === 0) {
+    gaps.push(`No My Work tasks are currently tracked for the ${context.stage} stage in this demo data set; add one to begin evidencing progress.`);
+  } else {
+    for (const task of stageTasks) {
+      if (task.status === "Blocked") {
+        gaps.push(`Task "${task.title}" is Blocked: ${task.blocker || "no blocker reason recorded"} (owner: ${task.owner}).`);
+      }
+      if (task.evidenceStatus !== "Accepted") {
+        gaps.push(`Evidence for "${task.title}" is ${task.evidenceStatus.toLowerCase()}, not yet Accepted (${task.evidenceLink || "no evidence link recorded"}).`);
+      }
+    }
+  }
+  if (gate && gate.status !== "Green") {
+    gaps.push(`Stage gate "${gate.name}" is ${gate.status}: ${gate.note} (owner: ${gate.owner}).`);
+  } else if (!gate) {
+    gaps.push(`No stage gate is currently tracked against "${context.stage}" in the demo gate watchlist.`);
+  }
+  if (engagementOnStage) {
+    if (context.engagementReadiness < 70) {
+      gaps.push(`Engagement readiness is ${context.engagementReadiness}%, below the 70% working threshold for this stage.`);
+    }
+    if (context.engagementEvidence < 70) {
+      gaps.push(`Engagement evidence completeness is ${context.engagementEvidence}%, below the 70% working threshold for this stage.`);
+    }
+    if (context.engagementHealth !== "Green") {
+      gaps.push(`Engagement health is ${context.engagementHealth} while in the ${context.stage} stage.`);
+    }
+  }
+  if (gaps.length === 0) {
+    gaps.push("No known gaps recorded for this stage in the current demo data.");
+  }
+
+  const evidence: string[] = [];
+  if (template) {
+    for (const input of template.requiredInputs) evidence.push(`Confirm required input is authoritative and available: ${input}.`);
+    for (const output of template.expectedOutputs) evidence.push(`Capture and review evidence for expected output: ${output}.`);
+  }
+  for (const task of stageTasks) {
+    evidence.push(`${task.title}: ${task.evidence} (${task.evidenceLink || "link to be added"}) — status: ${task.evidenceStatus}.`);
+  }
+
+  const owners: string[] = [];
+  owners.push(`Engagement owner: ${context.engagementOwner} (${context.engagementName}).`);
+  if (gate) owners.push(`Stage gate owner: ${gate.owner} (${gate.name}).`);
+  for (const task of stageTasks) owners.push(`${task.title}: ${task.owner}, due ${task.dueDate}.`);
+  if (stageTasks.length === 0) owners.push("No task owners or due dates are recorded for this stage yet.");
+
+  const nextActions: string[] = [];
+  for (const task of stageTasks) {
+    if (task.status === "Blocked") nextActions.push(`Resolve blocker for "${task.title}": ${task.blocker || "confirm and record the blocker"} (owner: ${task.owner}, due ${task.dueDate}).`);
+    else if (task.status !== "Complete") nextActions.push(`Advance "${task.title}" toward: ${task.definitionOfDone} (owner: ${task.owner}, due ${task.dueDate}).`);
+  }
+  if (stageTasks.length === 0) nextActions.push(`Create a My Work task for the ${context.stage} stage to track evidence, ownership, and definition of done.`);
+  if (template) nextActions.push(`Confirm exit criteria before advancing the gate: ${template.exitCriteria}.`);
+
+  const lines: string[] = [];
+  lines.push(`# ${context.stage} stage documentation`);
+  lines.push("");
+  lines.push(`**Engagement:** ${context.engagementName} (current stage: ${context.engagementStage}, health: ${context.engagementHealth})`);
+  lines.push(`**Runtime mode:** ${context.runtimeMode === "live" ? "Live" : "Demo"} — generated locally from ${context.runtimeMode === "live" ? "connected" : "synthetic/local"} data only`);
+  lines.push(`**Generated:** ${generatedAt.toLocaleString()}`);
+  lines.push("");
+  lines.push("## Purpose");
+  lines.push(template ? template.purpose : `No stage template is defined for "${context.stage}" in this demo data set.`);
+  lines.push("");
+  lines.push("## Required inputs");
+  lines.push(...(template ? template.requiredInputs.map((item) => `- ${item}`) : ["- Not defined for this stage in the current demo template."]));
+  lines.push("");
+  lines.push("## Expected outputs");
+  lines.push(...(template ? template.expectedOutputs.map((item) => `- ${item}`) : ["- Not defined for this stage in the current demo template."]));
+  lines.push("");
+  lines.push("## Decision rights");
+  lines.push(template ? template.decisionRights : "Not defined for this stage in the current demo template.");
+  lines.push("");
+  lines.push("## Exit criteria");
+  lines.push(template ? template.exitCriteria : "Not defined for this stage in the current demo template.");
+  lines.push("");
+  lines.push("## Known gaps (from current demo data)");
+  lines.push(...gaps.map((item) => `- ${item}`));
+  lines.push("");
+  lines.push("## Evidence to gather");
+  lines.push(...evidence.map((item) => `- ${item}`));
+  lines.push("");
+  lines.push("## Owners and due dates");
+  lines.push(...owners.map((item) => `- ${item}`));
+  lines.push("");
+  lines.push("## Next actions");
+  lines.push(...nextActions.map((item) => `- ${item}`));
+  lines.push("");
+  lines.push("---");
+  lines.push("Generated by the Data Protection Delivery Hub demo from local/synthetic data. It is not a substitute for governed delivery records or authorized approvals.");
+  return lines.join("\n");
 }

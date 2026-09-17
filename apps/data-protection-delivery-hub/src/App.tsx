@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import seed from "./data/seed.json";
-import { addPracticeImprovement, addRecord, getAuditEvents, getConnectionReadiness, getPracticeImprovements, getRecords, getRuntimeConfig, getWorkTasks, metricHistory, qualityMetrics, repositoryConfig, reusableAssets, stageTemplates, updateWorkTask, updateWorkTaskStatus, upsertWorkTaskFromSignal, type HubRecord, type PracticeImprovement, type RuntimeMode, type WorkTask, type WorkTaskStatus } from "./data/repository";
+import { addPracticeImprovement, addRecord, generateStageDocumentation, getAuditEvents, getConnectionReadiness, getPracticeImprovements, getRecords, getRuntimeConfig, getWorkTasks, metricHistory, qualityMetrics, repositoryConfig, reusableAssets, stageTemplates, updateWorkTask, updateWorkTaskStatus, upsertWorkTaskFromSignal, type HubRecord, type PracticeImprovement, type RuntimeMode, type WorkTask, type WorkTaskStatus } from "./data/repository";
 import "./index.css";
 
 const nav = [
@@ -521,6 +521,15 @@ function downloadCsv(page: ModuleName, records: HubRecord[]) {
   URL.revokeObjectURL(url);
 }
 
+function downloadTextFile(filename: string, content: string, mime: string) {
+  const url = URL.createObjectURL(new Blob([content], { type: `${mime};charset=utf-8` }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function App() {
   const [page, setPage] = useState<ModuleName>("Command Center");
   const [zone, setZone] = useState<Zone>("Start");
@@ -708,6 +717,7 @@ function App() {
             <ValueProposition role={role} />
             <PresentationBrief onStartWalkthrough={startWalkthrough} onOpenMyWork={() => openModule("My Work")} />
             <WorkflowOverview guided={guided} />
+            <StageDocumentationPanel engagement={selectedEngagement} workTasks={workTasks} runtimeMode={runtimeMode} />
             <IntelligencePanel onSelect={(item) => setDetail(item)} />
 
             <div className="metrics-grid">
@@ -1019,6 +1029,88 @@ function WorkflowOverview({ guided }: { guided: boolean }) {
         <span><strong>Decision:</strong> authorized human approval with rationale and audit</span>
         <span><strong>Learning:</strong> validated lessons become sanitized reusable assets</span>
       </div>
+    </section>
+  );
+}
+
+type StageDocEngagement = {
+  name: string;
+  stage: string;
+  health: string;
+  owner: string;
+  progress: number;
+  readiness: number;
+  evidence: number;
+};
+
+function StageDocumentationPanel({ engagement, workTasks, runtimeMode }: { engagement: StageDocEngagement | undefined; workTasks: WorkTask[]; runtimeMode: RuntimeMode }) {
+  const stages = stageTemplates.map((template) => template.stage);
+  const [stage, setStage] = useState(stages[0] ?? "");
+  const [documentation, setDocumentation] = useState<string | null>(null);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+
+  const generate = () => {
+    if (!engagement) return;
+    const content = generateStageDocumentation({
+      stage,
+      engagementName: engagement.name,
+      engagementStage: engagement.stage,
+      engagementHealth: engagement.health,
+      engagementOwner: engagement.owner,
+      engagementProgress: engagement.progress,
+      engagementReadiness: engagement.readiness,
+      engagementEvidence: engagement.evidence,
+      workTasks,
+      stageGates,
+      runtimeMode,
+    });
+    setDocumentation(content);
+    setCopyStatus("idle");
+  };
+
+  const copyToClipboard = async () => {
+    if (!documentation) return;
+    try {
+      await navigator.clipboard.writeText(documentation);
+      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("failed");
+    }
+  };
+
+  const fileBase = `${stage.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")}-stage-documentation`;
+
+  return (
+    <section className="card stage-documentation" aria-labelledby="stage-doc-title">
+      <div className="records-heading">
+        <div>
+          <div className="label accent">Stage documentation generator</div>
+          <h2 id="stage-doc-title">Generate readable documentation for a lifecycle stage</h2>
+          <p className="muted">Assembled locally from the stage template, My Work tasks, stage gates, and the selected engagement. Demo mode only uses synthetic/local data.</p>
+        </div>
+        <span className="record-count">{stages.length} stage templates</span>
+      </div>
+      <div className="toolbar">
+        <label className="sr-only" htmlFor="stage-doc-select">Lifecycle stage</label>
+        <select id="stage-doc-select" value={stage} onChange={(event) => { setStage(event.target.value); setDocumentation(null); }}>
+          {stages.map((item) => <option key={item} value={item}>{item}</option>)}
+        </select>
+        <button className="primary-button" type="button" onClick={generate} disabled={!engagement}>Generate documentation</button>
+        {documentation && (
+          <>
+            <button className="secondary-button" type="button" onClick={copyToClipboard}>
+              {copyStatus === "copied" ? "Copied!" : copyStatus === "failed" ? "Copy failed — select and copy manually" : "Copy to clipboard"}
+            </button>
+            <button className="secondary-button" type="button" onClick={() => downloadTextFile(`${fileBase}.md`, documentation, "text/markdown")}>Download .md</button>
+            <button className="secondary-button" type="button" onClick={() => downloadTextFile(`${fileBase}.txt`, documentation, "text/plain")}>Download .txt</button>
+          </>
+        )}
+      </div>
+      {documentation ? (
+        <pre className="stage-doc-output">{documentation}</pre>
+      ) : (
+        <p className="empty-state">Select a stage and choose Generate documentation to produce purpose, inputs, outputs, decision rights, exit criteria, known gaps, evidence, owners, and next actions.</p>
+      )}
     </section>
   );
 }

@@ -1466,6 +1466,21 @@ button:focus-visible {
   white-space: nowrap;
 }
 
+.stage-doc-output {
+  background: #f7f9fb;
+  border: 1px solid #cccccc;
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+  max-height: 420px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .record-table-wrap {
   overflow-x: auto;
   margin-top: 14px;
@@ -1830,6 +1845,12 @@ button:focus-visible {
 .theme-dark .card,
 .theme-dark .toolbar button {
   background: #172536;
+  border-color: #2c4258;
+  color: #e6edf5;
+}
+
+.theme-dark .stage-doc-output {
+  background: #101c2b;
   border-color: #2c4258;
   color: #e6edf5;
 }
