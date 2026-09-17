@@ -36,6 +36,7 @@ When Guided mode is enabled, hover or focus on the small **i** markers beside un
 
 Use Command Center for leadership and delivery reviews:
 
+- **Supervisor briefing:** start with the visible briefing panel to explain what the Hub is, how a signal becomes owned work, and the boundary between this demonstration and production implementation.
 - **Quality metrics:** compare baseline, target, actual, cohort, period, and trend.
 - **Practice improvement:** review recurring problems, owners, targets, status, and impact.
 - **Leadership alignment:** frame the review around practice impact, evidence/control, scale/reuse, and attention required.
@@ -44,6 +45,8 @@ Use Command Center for leadership and delivery reviews:
 - **Stage gate watchlist:** identify gates that are blocked or conditional.
 
 Metrics in the current demonstration are synthetic. Treat them as a presentation model until production metric lineage is configured.
+
+For a supervisor presentation, do not describe the screen as a collection of dashboard cards. Explain the operating loop: **see the signal → trace the source → move the work → protect the gate**. Use the briefing panel's walkthrough and execution-view buttons, then click a risk or decision to show that the dashboard leads to an actionable workspace rather than ending at a visual summary.
 
 ## My Work
 

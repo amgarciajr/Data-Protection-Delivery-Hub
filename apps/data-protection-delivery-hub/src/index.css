@@ -774,6 +774,70 @@ button:focus-visible {
   margin-top: 18px;
 }
 
+.presentation-brief {
+  background: linear-gradient(135deg, #fff7f1 0%, #ffffff 58%, #fff1e5 100%);
+  border: 1px solid #ffc9a8;
+  border-left: 5px solid #ff5800;
+  border-radius: 10px;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(280px, 1fr) minmax(360px, 1.4fr);
+  margin: 18px 0;
+  padding: 22px;
+}
+
+.presentation-brief h2 {
+  margin: 5px 0 8px;
+}
+
+.presentation-brief-main p {
+  color: #444;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 760px;
+}
+
+.presentation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.presentation-brief-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.presentation-brief-grid div {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid #f0d6c4;
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  padding: 13px;
+}
+
+.presentation-brief-grid span {
+  color: #555;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.presentation-boundary {
+  border-top: 1px solid #f0d6c4;
+  color: #555;
+  font-size: 12px;
+  grid-column: 1 / -1;
+  line-height: 1.5;
+  padding-top: 14px;
+}
+
+.presentation-boundary strong + strong {
+  margin-left: 8px;
+}
+
 .quality-trends {
   margin-top: 18px;
 }
@@ -1712,6 +1776,26 @@ button:focus-visible {
   color: #f0d99b;
 }
 
+.theme-dark .presentation-brief {
+  background: linear-gradient(135deg, #3b2b22 0%, #30363d 100%);
+  border-color: #99512d;
+}
+
+.theme-dark .presentation-brief-main p,
+.theme-dark .presentation-brief-grid span,
+.theme-dark .presentation-boundary {
+  color: #dceaf2;
+}
+
+.theme-dark .presentation-brief-grid div {
+  background: #3b4249;
+  border-color: #666666;
+}
+
+.theme-dark .presentation-boundary {
+  border-color: #666666;
+}
+
 .theme-dark .form-grid label {
   color: #c4d5e1;
 }
@@ -1741,6 +1825,7 @@ button:focus-visible {
   .intelligence-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .value-proposition { grid-template-columns: 1fr; }
   .value-proof { border-left: 0; border-top: 1px solid #666; padding-left: 0; padding-top: 16px; }
+  .presentation-brief { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {
@@ -1767,6 +1852,7 @@ button:focus-visible {
   .trace-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hero { flex-direction: column; align-items: flex-start; }
   .hero-meta { text-align: left; }
+  .presentation-brief-grid { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
   .connection-grid { grid-template-columns: 1fr; }
   .practice-metrics { grid-template-columns: 1fr; }

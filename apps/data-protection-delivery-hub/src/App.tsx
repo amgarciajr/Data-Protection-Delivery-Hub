@@ -640,6 +640,7 @@ function App() {
             </div>
 
             <ValueProposition role={role} />
+            <PresentationBrief onStartWalkthrough={startWalkthrough} onOpenMyWork={() => openModule("My Work")} />
             <WorkflowOverview guided={guided} />
             <IntelligencePanel onSelect={(item) => setDetail(item)} />
 
@@ -842,6 +843,47 @@ function ValueProposition({ role }: { role: Role }) {
         <strong>One operating view instead of seven disconnected tools</strong>
         <p>Teams, SharePoint, Planner, Outlook, OneNote, Power BI, and PowerPoint remain useful sources. The Hub connects their delivery signals to ownership, evidence, stage decisions, and outcomes.</p>
         <small>Source of truth: governed delivery records · Evidence: authoritative links · Intelligence: explainable signals</small>
+      </div>
+    </section>
+  );
+}
+
+function PresentationBrief({ onStartWalkthrough, onOpenMyWork }: { onStartWalkthrough: () => void; onOpenMyWork: () => void }) {
+  return (
+    <section className="presentation-brief" aria-labelledby="presentation-brief-title">
+      <div className="presentation-brief-main">
+        <div className="label accent">Supervisor briefing</div>
+        <h2 id="presentation-brief-title">This is a delivery control plane, not another dashboard</h2>
+        <p>
+          The Hub connects the work people do across Teams, SharePoint, Planner, Outlook, OneNote, Power BI, and PowerPoint
+          to the controls leadership needs: ownership, evidence, decisions, readiness, handoff, and measurable improvement.
+        </p>
+        <div className="presentation-actions">
+          <button className="primary-button" type="button" onClick={onStartWalkthrough}>Run the leadership walkthrough</button>
+          <button className="secondary-button" type="button" onClick={onOpenMyWork}>Show the execution view</button>
+        </div>
+      </div>
+      <div className="presentation-brief-grid">
+        <div>
+          <strong>1. See the signal</strong>
+          <span>A risk, evidence gap, decision, or readiness concern is visible before the status meeting.</span>
+        </div>
+        <div>
+          <strong>2. Trace the source</strong>
+          <span>Click the item to see its owner, timing, context, and the record that must be updated.</span>
+        </div>
+        <div>
+          <strong>3. Move the work</strong>
+          <span>Open the right workspace, assign the next action, attach evidence, and record the decision.</span>
+        </div>
+        <div>
+          <strong>4. Protect the gate</strong>
+          <span>Advance only when mandatory evidence, ownership, support, and approval criteria are satisfied.</span>
+        </div>
+      </div>
+      <div className="presentation-boundary">
+        <strong>What you are seeing today:</strong> a fully navigable synthetic-data demonstration with local browser persistence.
+        <strong>What production adds:</strong> governed Dataverse and SharePoint adapters, Entra authorization, audit, ALM, monitoring, and support controls.
       </div>
     </section>
   );
