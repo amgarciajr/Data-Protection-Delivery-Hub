@@ -1324,12 +1324,17 @@ button:focus-visible {
   margin: 16px 0;
 }
 
-.toolbar button {
+.toolbar button,
+.toolbar a.secondary-button {
   border: 1px solid #b3b3b3;
   background: white;
   border-radius: 8px;
   padding: 8px 12px;
   cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
 }
 
 .stage-doc-controls {
@@ -2003,7 +2008,8 @@ button:focus-visible {
 }
 
 .theme-dark .card,
-.theme-dark .toolbar button {
+.theme-dark .toolbar button,
+.theme-dark .toolbar a.secondary-button {
   background: #172536;
   border-color: #2c4258;
   color: #e6edf5;

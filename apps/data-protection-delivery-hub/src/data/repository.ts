@@ -648,6 +648,112 @@ export function generateStageDocumentation(
   return lines.join("\n");
 }
 
+export type ProjectStatusContext = {
+  engagements: StageDocumentationPortfolioItem[];
+  workTasks: WorkTask[];
+  stageGates: StageGateSummary[];
+  risks: EvidenceChainRisk[];
+  decisions: EvidenceChainDecision[];
+  runtimeMode: RuntimeMode;
+  generatedAt?: Date;
+};
+
+// Assembles a single, comprehensive project/portfolio status report covering every
+// engagement, quality metric, improvement action, stage gate, lifecycle stage, risk,
+// decision, and evidence chain — not just one selected stage. Built entirely from
+// local/synthetic data already in memory; no live connector calls are made, so the
+// Demo/Live boundary stays intact regardless of the active runtime mode. This is the
+// "generate everything" counterpart to the selectable Stage Report Builder.
+export function generateProjectStatusReport(context: ProjectStatusContext): string {
+  const generatedAt = context.generatedAt ?? new Date();
+  const improvements = getPracticeImprovements();
+  const chains = getEvidenceChains(context.workTasks, context.stageGates, context.risks, context.decisions);
+
+  const lines: string[] = [];
+  lines.push("# Data Protection Delivery Hub — project status report");
+  lines.push("");
+  lines.push(`**Runtime mode:** ${context.runtimeMode === "live" ? "Live" : "Demo"} — generated locally from ${context.runtimeMode === "live" ? "connected" : "synthetic/local"} data only`);
+  lines.push(`**Generated:** ${generatedAt.toLocaleString()}`);
+  lines.push("");
+
+  const addSection = (title: string, content: string[]) => {
+    if (content.length === 0) return;
+    lines.push(`## ${title}`);
+    lines.push(...content);
+    lines.push("");
+  };
+
+  // Executive summary
+  const healthCounts = { Green: 0, Amber: 0, Red: 0 } as Record<string, number>;
+  for (const engagement of context.engagements) healthCounts[engagement.health] = (healthCounts[engagement.health] ?? 0) + 1;
+  const avg = (values: number[]) => values.length ? Math.round(values.reduce((total, value) => total + value, 0) / values.length) : 0;
+  const avgReadiness = avg(context.engagements.map((item) => item.readiness));
+  const avgEvidence = avg(context.engagements.map((item) => item.evidence));
+  const redGates = context.stageGates.filter((gate) => gate.status !== "Green").length;
+  const blockedTasks = context.workTasks.filter((task) => task.status === "Blocked").length;
+  addSection("Executive summary", [
+    `${context.engagements.length} active engagement(s): ${healthCounts.Green ?? 0} Green, ${healthCounts.Amber ?? 0} Amber, ${healthCounts.Red ?? 0} Red.`,
+    `Average readiness ${avgReadiness}% and average evidence completeness ${avgEvidence}% across active engagements.`,
+    `${redGates} of ${context.stageGates.length} tracked stage gate(s) are not Green.`,
+    `${blockedTasks} My Work task(s) are currently Blocked.`,
+    `${context.risks.length} tracked risk(s) and ${context.decisions.length} open decision(s) in the RAID register.`,
+  ]);
+
+  // Engagement portfolio
+  addSection("Engagement portfolio", context.engagements.map((item) => `- ${item.name} — stage: ${item.stage} · health: ${item.health} · progress ${item.progress}% · readiness ${item.readiness}% · evidence ${item.evidence}%`));
+
+  // Quality metrics
+  addSection("Quality metrics", qualityMetrics.map((metric) => `- ${metric.name} (${metric.period}, ${metric.cohort}): baseline ${metric.baseline}${metric.unit === "%" ? "%" : ""}, actual ${metric.actual}${metric.unit === "%" ? "%" : ""}, target ${metric.target}${metric.unit === "%" ? "%" : ""} (trend: ${metric.direction === "up" ? "improving is higher" : "improving is lower"}).`));
+
+  // Practice improvement backlog
+  addSection("Practice improvement backlog", improvements.map((item) => `- ${item.title} (${item.status}) — ${item.problem} Owner: ${item.owner}. Baseline ${item.baseline} -> Target ${item.target}. Review ${item.reviewDate}.`));
+
+  // Stage gate watchlist
+  addSection("Stage gate watchlist", context.stageGates.map((gate) => `- ${gate.name}: ${gate.status} — ${gate.note} (owner: ${gate.owner}).`));
+
+  // Lifecycle stage reference (all stages)
+  addSection("Lifecycle stage reference", stageTemplates.map((template) => `- ${template.stage}: ${template.purpose} Exit criteria: ${template.exitCriteria}`));
+
+  // My Work summary
+  const byStatus = (status: WorkTaskStatus) => context.workTasks.filter((task) => task.status === status);
+  addSection("My Work summary", [
+    `Not started: ${byStatus("Not started").length} · In progress: ${byStatus("In progress").length} · Blocked: ${byStatus("Blocked").length} · Ready for review: ${byStatus("Ready for review").length} · Complete: ${byStatus("Complete").length}.`,
+    ...context.workTasks.filter((task) => task.status === "Blocked").map((task) => `- Blocked: "${task.title}" (${task.stage}) — ${task.blocker || "no blocker reason recorded"} (owner: ${task.owner}, due ${task.dueDate}).`),
+  ]);
+
+  // Risks and decisions register
+  addSection("Risks and decisions register", [
+    ...context.risks.map((risk) => `- Risk: ${risk.title} (${risk.severity}, owner: ${risk.owner}, due ${risk.due}).`),
+    ...context.decisions.map((decision) => `- Decision: ${decision.title} (${decision.status}, owner: ${decision.owner}).`),
+  ]);
+
+  // Evidence chain summary (whole hub, not one stage)
+  const green = chains.filter((chain) => chain.overallStatus === "Green").length;
+  const amberCount = chains.filter((chain) => chain.overallStatus === "Amber").length;
+  const redCount = chains.filter((chain) => chain.overallStatus === "Red").length;
+  addSection("Evidence chain summary", [
+    `Tracked chains: ${chains.length} total (${green} Green, ${amberCount} Amber, ${redCount} Red).`,
+    ...chains.filter((chain) => chain.overallStatus !== "Green").map((chain) => {
+      const attentionNodes = chain.nodes.filter((node) => node.status !== "Green").map((node) => `${evidenceChainNodeLabels[node.kind]} — ${node.label}`).join("; ");
+      return `- ${chain.title} (${chain.stage}, owner: ${chain.owner}): ${attentionNodes}.`;
+    }),
+  ]);
+
+  // Reusable assets
+  addSection("Knowledge and reuse", reusableAssets.map((asset) => `- ${asset.title} (${asset.type}) — sanitization: ${asset.sanitization}, review: ${asset.reviewState}, adopted by ${asset.adoptionCount} engagement(s) (owner: ${asset.owner}).`));
+
+  // Connection readiness / Demo-Live boundary
+  const readiness = getConnectionReadiness();
+  addSection("Connection readiness (Demo/Live boundary)", [
+    `Mode: ${readiness.runtimeMode === "live" ? "Live" : "Demo"}. ${readiness.message}`,
+    ...(readiness.missing.length > 0 ? [`Missing before Live can be enabled: ${readiness.missing.join(", ")}.`] : []),
+  ]);
+
+  lines.push("---");
+  lines.push("Generated by the Data Protection Delivery Hub demo from local/synthetic data. It is not a substitute for governed delivery records or authorized approvals. For a filtered, section-selectable single-stage report, use the Stage Report Builder above.");
+  return lines.join("\n");
+}
+
 // ---------------------------------------------------------------------------
 // Evidence chain model
 //

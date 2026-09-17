@@ -10,6 +10,7 @@ This document is the handoff contract for replacing the prototype repository wit
 - Store evidence in an approved SharePoint library and retain links, metadata, classification, review state, and retention references in Dataverse.
 - Preserve explicit loading, empty, validation, authorization, connector, partial-success, and retry states.
 - Keep Demo and Live visibly distinct. Live must fail closed; it must never silently show Demo data.
+- If Outlook/Teams data-gathering or report-sharing is added, implement it as a separate adapter behind server-side/Graph authentication (see `ADAPTER_CONTRACT.md`); never call Graph directly from the browser with an embedded token.
 
 ## Technical expectations
 

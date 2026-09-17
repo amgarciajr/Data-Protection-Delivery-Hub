@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import seed from "./data/seed.json";
-import { addPracticeImprovement, addRecord, evidenceChainNodeLabels, generateStageDocumentation, getAuditEvents, getConnectionReadiness, getEvidenceChains, getPracticeImprovements, getRecords, getRuntimeConfig, getWorkTasks, metricHistory, qualityMetrics, repositoryConfig, reusableAssets, stageDocumentationSections, stageTemplates, updateWorkTask, updateWorkTaskStatus, upsertWorkTaskFromSignal, type EvidenceChain, type EvidenceChainDecision, type EvidenceChainNode, type EvidenceChainRisk, type HubRecord, type PracticeImprovement, type RuntimeMode, type StageDocumentationSectionId, type StageDocumentationSectionSelection, type WorkTask, type WorkTaskStatus } from "./data/repository";
+import { addPracticeImprovement, addRecord, evidenceChainNodeLabels, generateProjectStatusReport, generateStageDocumentation, getAuditEvents, getConnectionReadiness, getEvidenceChains, getPracticeImprovements, getRecords, getRuntimeConfig, getWorkTasks, metricHistory, qualityMetrics, repositoryConfig, reusableAssets, stageDocumentationSections, stageTemplates, updateWorkTask, updateWorkTaskStatus, upsertWorkTaskFromSignal, type EvidenceChain, type EvidenceChainDecision, type EvidenceChainNode, type EvidenceChainRisk, type HubRecord, type PracticeImprovement, type RuntimeMode, type StageDocumentationSectionId, type StageDocumentationSectionSelection, type WorkTask, type WorkTaskStatus } from "./data/repository";
 import "./index.css";
 
 const nav = [
@@ -553,6 +553,19 @@ function downloadTextFile(filename: string, content: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
+// Opens the user's default mail client with the report prefilled. This is a client-side,
+// no-auth convenience — it does not call Microsoft Graph and cannot post to Teams directly.
+// Most mail clients truncate very long mailto bodies, so long reports are trimmed with a
+// pointer back to the downloadable file. Real Outlook/Teams data gathering and posting is
+// documented as a future adapter in docs/ADAPTER_CONTRACT.md.
+function buildMailtoLink(subject: string, body: string) {
+  const maxBodyLength = 1800;
+  const safeBody = body.length > maxBodyLength
+    ? `${body.slice(0, maxBodyLength)}\n\n[Report truncated for email length — use Download to attach the full file.]`
+    : body;
+  return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(safeBody)}`;
+}
+
 function App() {
   const [page, setPage] = useState<ModuleName>("Command Center");
   const [zone, setZone] = useState<Zone>("Start");
@@ -742,6 +755,7 @@ function App() {
             <PresentationBrief onStartWalkthrough={startWalkthrough} onOpenMyWork={() => openModule("My Work")} />
             <WorkflowOverview guided={guided} />
             <StageDocumentationPanel engagement={selectedEngagement} workTasks={workTasks} runtimeMode={runtimeMode} />
+            <ProjectStatusReportPanel workTasks={workTasks} runtimeMode={runtimeMode} />
             <IntelligencePanel onSelect={(item) => setDetail(item)} />
 
             <div className="metrics-grid">
@@ -1161,8 +1175,9 @@ function StageDocumentationPanel({ engagement, workTasks, runtimeMode }: { engag
           {documentation && (
             <>
               <button className="secondary-button" type="button" onClick={copyToClipboard}>
-                {copyStatus === "copied" ? "Copied!" : copyStatus === "failed" ? "Copy failed — select and copy manually" : "Copy to clipboard"}
+                {copyStatus === "copied" ? "Copied! Paste into Teams/Outlook" : copyStatus === "failed" ? "Copy failed — select and copy manually" : "Copy to clipboard (Teams/Outlook)"}
               </button>
+              <a className="secondary-button" href={buildMailtoLink(`${stage} stage report — ${engagement?.name ?? "engagement"}`, documentation)}>Email report</a>
               <button className="secondary-button" type="button" onClick={() => downloadTextFile(`${fileBase}.md`, documentation, "text/markdown")}>Download .md</button>
               <button className="secondary-button" type="button" onClick={() => downloadTextFile(`${fileBase}.txt`, documentation, "text/plain")}>Download .txt</button>
             </>
@@ -1187,6 +1202,74 @@ function StageDocumentationPanel({ engagement, workTasks, runtimeMode }: { engag
         <pre className="stage-doc-output">{documentation}</pre>
       ) : (
         <p className="empty-state">Select a stage, choose the report sections to include, and then generate the output. The selected checkboxes control which content blocks actually appear in the report.</p>
+      )}
+    </section>
+  );
+}
+
+function ProjectStatusReportPanel({ workTasks, runtimeMode }: { workTasks: WorkTask[]; runtimeMode: RuntimeMode }) {
+  const [documentation, setDocumentation] = useState<string | null>(null);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+
+  const generate = () => {
+    const content = generateProjectStatusReport({
+      engagements: seed.engagements.map((item) => ({
+        name: item.name,
+        stage: item.stage,
+        health: item.health,
+        progress: item.progress,
+        readiness: item.readiness,
+        evidence: item.evidence,
+      })),
+      workTasks,
+      stageGates,
+      risks: seed.risks,
+      decisions: seed.decisions,
+      runtimeMode,
+    });
+    setDocumentation(content);
+    setCopyStatus("idle");
+  };
+
+  const copyToClipboard = async () => {
+    if (!documentation) return;
+    try {
+      await navigator.clipboard.writeText(documentation);
+      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("failed");
+    }
+  };
+
+  return (
+    <section className="card stage-documentation" aria-labelledby="project-report-title">
+      <div className="records-heading">
+        <div>
+          <div className="label accent">Project status report</div>
+          <h2 id="project-report-title">Generate a full document on the whole project</h2>
+          <p className="muted">Covers every engagement, quality metric, improvement action, stage gate, all ten lifecycle stages, My Work status, risks/decisions, and evidence chains in one document. Use this for a complete leadership hand-out; use the Stage Report Builder above when you only need one stage.</p>
+        </div>
+        <span className="record-count">Whole-project summary</span>
+      </div>
+      <div className="stage-doc-controls">
+        <div className="toolbar">
+          <button className="primary-button" type="button" onClick={generate}>Generate full project report</button>
+          {documentation && (
+            <>
+              <button className="secondary-button" type="button" onClick={copyToClipboard}>
+                {copyStatus === "copied" ? "Copied! Paste into Teams/Outlook" : copyStatus === "failed" ? "Copy failed — select and copy manually" : "Copy to clipboard (Teams/Outlook)"}
+              </button>
+              <a className="secondary-button" href={buildMailtoLink("Data Protection Delivery Hub — project status report", documentation)}>Email report</a>
+              <button className="secondary-button" type="button" onClick={() => downloadTextFile("project-status-report.md", documentation, "text/markdown")}>Download .md</button>
+              <button className="secondary-button" type="button" onClick={() => downloadTextFile("project-status-report.txt", documentation, "text/plain")}>Download .txt</button>
+            </>
+          )}
+        </div>
+      </div>
+      {documentation ? (
+        <pre className="stage-doc-output">{documentation}</pre>
+      ) : (
+        <p className="empty-state">Generate a single, comprehensive document covering the entire project's current status — no section picking required.</p>
       )}
     </section>
   );
