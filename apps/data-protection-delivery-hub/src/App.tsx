@@ -50,14 +50,18 @@ const zoneModules: Record<Zone, ModuleName[]> = {
 
 const zones = Object.keys(zoneModules) as Zone[];
 
+// Every role must have at least one reachable module in every Experience zone
+// (Start, Deliver, Prove, Transition, Improve). Missing coverage leaves the
+// zone's sidebar empty and the previously viewed module stuck on screen when
+// clicked, so any change here should re-check zoneModules coverage per role.
 const roleModules: Record<Role, ModuleName[]> = {
-  Consultant: ["Command Center", "My Work", "Engagements", "Discovery & Assessment", "Testing & Evidence", "Knowledge & Reuse"],
-  "Workstream Lead": ["Command Center", "My Work", "Engagements", "Scope & Requirements", "Architecture & Controls", "Delivery Execution", "Testing & Evidence"],
-  Architect: ["Command Center", "My Work", "Engagements", "Architecture & Controls", "RAID & Decisions", "Readiness & Assurance", "Knowledge & Reuse"],
-  "Project Manager": ["Command Center", "My Work", "Pipeline & Intake", "Engagements", "Scope & Requirements", "Delivery Execution", "RAID & Decisions", "Deliverables"],
-  "Engagement Manager": ["Command Center", "My Work", "Pipeline & Intake", "Engagements", "RAID & Decisions", "Readiness & Assurance", "Deliverables", "Transition & Operations"],
-  Reviewer: ["Command Center", "My Work", "Testing & Evidence", "Readiness & Assurance", "Deliverables", "Knowledge & Reuse"],
-  "Practice Leader": ["Command Center", "Engagements", "Knowledge & Reuse", "Practice Intelligence"],
+  Consultant: ["Command Center", "My Work", "Engagements", "Discovery & Assessment", "Testing & Evidence", "Transition & Operations", "Knowledge & Reuse"],
+  "Workstream Lead": ["Command Center", "My Work", "Engagements", "Scope & Requirements", "Architecture & Controls", "Delivery Execution", "Testing & Evidence", "Deliverables", "Knowledge & Reuse"],
+  Architect: ["Command Center", "My Work", "Engagements", "Architecture & Controls", "RAID & Decisions", "Readiness & Assurance", "Deliverables", "Knowledge & Reuse"],
+  "Project Manager": ["Command Center", "My Work", "Pipeline & Intake", "Engagements", "Scope & Requirements", "Delivery Execution", "RAID & Decisions", "Readiness & Assurance", "Deliverables", "Knowledge & Reuse"],
+  "Engagement Manager": ["Command Center", "My Work", "Pipeline & Intake", "Engagements", "RAID & Decisions", "Readiness & Assurance", "Deliverables", "Transition & Operations", "Practice Intelligence"],
+  Reviewer: ["Command Center", "My Work", "RAID & Decisions", "Testing & Evidence", "Readiness & Assurance", "Deliverables", "Knowledge & Reuse"],
+  "Practice Leader": ["Command Center", "Engagements", "Readiness & Assurance", "Deliverables", "Knowledge & Reuse", "Practice Intelligence"],
   "Platform Administrator": [...nav],
 };
 
@@ -648,9 +652,10 @@ function App() {
               className={`zone-button ${zone === item ? "active" : ""}`}
               title={guided ? `Open the ${item} journey zone` : undefined}
               onClick={() => {
-                setZone(item);
                 const firstAvailable = zoneModules[item].find((module) => roleModules[role].includes(module));
-                if (firstAvailable) setPage(firstAvailable);
+                if (!firstAvailable) return; // no module in this zone is reachable for the active role; keep current view instead of stranding the sidebar
+                setZone(item);
+                setPage(firstAvailable);
               }}
             >
               {item}
@@ -861,7 +866,7 @@ function App() {
         ) : page === "My Work" ? (
           <MyWork />
         ) : (
-          <Module page={page} workTasks={workTasks} risks={seed.risks} decisions={seed.decisions} onSelect={setDetail} onOpenModule={openModule} />
+          <Module key={page} page={page} workTasks={workTasks} risks={seed.risks} decisions={seed.decisions} onSelect={setDetail} onOpenModule={openModule} />
         )}
       </main>
       {settingsOpen && (
