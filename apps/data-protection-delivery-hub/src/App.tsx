@@ -68,15 +68,15 @@ const roleModules: Record<Role, ModuleName[]> = {
 const roleOptions = Object.keys(roleModules) as Role[];
 
 const roleValue = {
-  Consultant: { title: "Move delivery forward faster", benefit: "Capture evidence once, reduce status reporting, and see exactly what done means.", actions: ["Complete next assigned task", "Attach or request evidence", "Escalate a blocker"] },
-  "Engagement Manager": { title: "Know whether the engagement is safe to advance", benefit: "See scope drift, risks, readiness, decisions, and handoff confidence in one review.", actions: ["Review gate blockers", "Resolve overdue decisions", "Confirm readiness"] },
-  "Practice Leader": { title: "Scale what works across engagements", benefit: "Identify recurring failure patterns, adoption of standards, and where coaching creates leverage.", actions: ["Review quality trends", "Prioritize improvement actions", "Publish reusable assets"] },
-  "Project Manager": { title: "Keep delivery controlled and predictable", benefit: "Coordinate milestones, dependencies, changes, deliverables, and ownership without rebuilding reports.", actions: ["Review milestone health", "Manage scope changes", "Prepare status narrative"] },
-  Architect: { title: "Make decisions traceable and reusable", benefit: "Connect architecture choices to controls, exceptions, tests, evidence, and downstream impact.", actions: ["Resolve design decisions", "Review control mappings", "Coach decision quality"] },
-  "Workstream Lead": { title: "Turn work into reviewable outcomes", benefit: "Organize requirements, configuration, tests, evidence, and defects around a clear definition of done.", actions: ["Close traceability gaps", "Route evidence for review", "Re-sequence blocked work"] },
-  Reviewer: { title: "Review the proof, not the story", benefit: "Focus on evidence quality, deliverable review states, and the criteria that determine readiness.", actions: ["Review evidence queue", "Disposition defects", "Approve or return deliverables"] },
-  "Platform Administrator": { title: "Keep the operating model governed", benefit: "Manage reference data, roles, stage criteria, integrations, audit, and support readiness.", actions: ["Review configuration", "Validate security boundaries", "Monitor automation health"] },
-} satisfies Record<Role, { title: string; benefit: string; actions: string[] }>;
+  Consultant: { title: "Move delivery forward faster", benefit: "Capture evidence once, reduce status reporting, and see exactly what done means.", actions: [{ label: "Complete next assigned task", module: "My Work" as ModuleName }, { label: "Attach or request evidence", module: "Testing & Evidence" as ModuleName }, { label: "Escalate a blocker", module: "RAID & Decisions" as ModuleName }] },
+  "Engagement Manager": { title: "Know whether the engagement is safe to advance", benefit: "See scope drift, risks, readiness, decisions, and handoff confidence in one review.", actions: [{ label: "Review gate blockers", module: "Readiness & Assurance" as ModuleName }, { label: "Resolve overdue decisions", module: "RAID & Decisions" as ModuleName }, { label: "Confirm readiness", module: "Readiness & Assurance" as ModuleName }] },
+  "Practice Leader": { title: "Scale what works across engagements", benefit: "Identify recurring failure patterns, adoption of standards, and where coaching creates leverage.", actions: [{ label: "Review quality trends", module: "Practice Intelligence" as ModuleName }, { label: "Prioritize improvement actions", module: "Practice Intelligence" as ModuleName }, { label: "Publish reusable assets", module: "Knowledge & Reuse" as ModuleName }] },
+  "Project Manager": { title: "Keep delivery controlled and predictable", benefit: "Coordinate milestones, dependencies, changes, deliverables, and ownership without rebuilding reports.", actions: [{ label: "Review milestone health", module: "Delivery Execution" as ModuleName }, { label: "Manage scope changes", module: "Scope & Requirements" as ModuleName }, { label: "Prepare status narrative", module: "Engagements" as ModuleName }] },
+  Architect: { title: "Make decisions traceable and reusable", benefit: "Connect architecture choices to controls, exceptions, tests, evidence, and downstream impact.", actions: [{ label: "Resolve design decisions", module: "RAID & Decisions" as ModuleName }, { label: "Review control mappings", module: "Architecture & Controls" as ModuleName }, { label: "Coach decision quality", module: "Practice Intelligence" as ModuleName }] },
+  "Workstream Lead": { title: "Turn work into reviewable outcomes", benefit: "Organize requirements, configuration, tests, evidence, and defects around a clear definition of done.", actions: [{ label: "Close traceability gaps", module: "Scope & Requirements" as ModuleName }, { label: "Route evidence for review", module: "Testing & Evidence" as ModuleName }, { label: "Re-sequence blocked work", module: "Delivery Execution" as ModuleName }] },
+  Reviewer: { title: "Review the proof, not the story", benefit: "Focus on evidence quality, deliverable review states, and the criteria that determine readiness.", actions: [{ label: "Review evidence queue", module: "Testing & Evidence" as ModuleName }, { label: "Disposition defects", module: "Testing & Evidence" as ModuleName }, { label: "Approve or return deliverables", module: "Deliverables" as ModuleName }] },
+  "Platform Administrator": { title: "Keep the operating model governed", benefit: "Manage reference data, roles, stage criteria, integrations, audit, and support readiness.", actions: [{ label: "Review configuration", module: "Administration" as ModuleName }, { label: "Validate security boundaries", module: "Administration" as ModuleName }, { label: "Monitor automation health", module: "Administration" as ModuleName }] },
+} satisfies Record<Role, { title: string; benefit: string; actions: { label: string; module: ModuleName }[] }>;
 
 const lifecycleStages = [
   { stage: "Qualify", output: "Accepted opportunity" },
@@ -117,9 +117,9 @@ const stageGates = [
 ];
 
 const lifecycleSignals = [
-  { title: "Evidence completeness", value: "76%", tone: "Green" },
-  { title: "Ready for release", value: "3 of 7", tone: "Amber" },
-  { title: "Actionable risks", value: "11", tone: "Red" },
+  { title: "Evidence completeness", value: "76%", tone: "Green", detail: "76% of required evidence across active engagements has been submitted and reviewed. Open items are tracked in Readiness & Assurance.", module: "Readiness & Assurance" as ModuleName },
+  { title: "Ready for release", value: "3 of 7", tone: "Amber", detail: "3 of 7 tracked release criteria are currently Green. Review mandatory criteria and exceptions in Readiness & Assurance.", module: "Readiness & Assurance" as ModuleName },
+  { title: "Actionable risks", value: "11", tone: "Red", detail: "11 open risk and decision items need an owner action. Review and mitigate them in RAID & Decisions.", module: "RAID & Decisions" as ModuleName },
 ];
 
 const readinessCriteria = [
@@ -450,7 +450,7 @@ function DemoWalkthrough({ step, onNext, onClose, onNavigate }: { step: number; 
   );
 }
 
-function PracticeImprovementPanel({ improvements, onAdded }: { improvements: PracticeImprovement[]; onAdded: (item: PracticeImprovement) => void }) {
+function PracticeImprovementPanel({ improvements, onAdded, onSelect, onOpenModule }: { improvements: PracticeImprovement[]; onAdded: (item: PracticeImprovement) => void; onSelect: (detail: DetailTarget) => void; onOpenModule: (page: ModuleName) => void }) {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [problem, setProblem] = useState("");
@@ -488,13 +488,23 @@ function PracticeImprovementPanel({ improvements, onAdded }: { improvements: Pra
       </div>
       <div className="practice-metrics">
         {qualityMetrics.map((metric) => (
-          <div className="practice-metric" key={metric.id}>
+          <button
+            type="button"
+            className="practice-metric interactive-card"
+            key={metric.id}
+            onClick={() => onSelect({
+              title: metric.name,
+              summary: `Current value ${metric.actual}${metric.unit === "%" ? "%" : ""} for ${metric.period} against a target of ${metric.target}${metric.unit === "%" ? "%" : ""}. This measure is calculated from linked work, evidence, and review records across active engagements.`,
+              action: "Open Practice Intelligence",
+              onAction: () => onOpenModule("Practice Intelligence"),
+            })}
+          >
             <span className="label">{metric.name}</span>
             <strong className={`practice-value ${metric.actual >= metric.target === (metric.direction === "up") ? "Green" : "Amber"}`}>
               {metric.actual}{metric.unit === "%" ? "%" : ""}
             </strong>
             <small>{metric.period} · target {metric.target}{metric.unit === "%" ? "%" : ""}</small>
-          </div>
+          </button>
         ))}
       </div>
       {showForm && (
@@ -508,14 +518,28 @@ function PracticeImprovementPanel({ improvements, onAdded }: { improvements: Pra
       )}
       <div className="practice-actions">
         {improvements.map((action) => (
-          <div className="practice-action" key={action.id}>
+          <button
+            type="button"
+            className="practice-action interactive-list-item"
+            key={action.id}
+            onClick={() => onSelect({
+              title: action.title,
+              summary: `${action.problem} Owned by ${action.owner}; baseline ${action.baseline}, target ${action.target}. Status: ${action.status}. Source: ${action.source}.`,
+              resolution: resolutionFor(action.title, action.owner, action.reviewDate, action.status === "Complete" ? "On track" : action.status === "Planned" ? "Blocked" : "Needs attention"),
+              action: "Create/update My Work task",
+              onAction: () => signalTaskAction(
+                { id: action.id, type: "Decision", title: `Advance improvement: ${action.title}`, owner: action.owner, dueDate: action.reviewDate, stage: "Improve", blocker: action.problem, expectedOutcome: `${action.title} reaches its target (${action.target}).` },
+                () => onOpenModule("My Work"),
+              ),
+            })}
+          >
             <div>
               <strong>{action.title}</strong>
               <p>{action.problem}</p>
               <small>{action.owner} · baseline {action.baseline} · target {action.target}</small>
             </div>
             <Pill v={action.status === "Complete" ? "Green" : action.status === "Planned" ? "Red" : "Amber"} />
-          </div>
+          </button>
         ))}
       </div>
     </div>
@@ -642,10 +666,10 @@ function App() {
 
   const metrics = useMemo(
     () => [
-      { label: "Active engagements", value: seed.engagements.length },
-      { label: "Critical/high risks", value: seed.risks.length },
-      { label: "Open decisions", value: seed.decisions.length },
-      { label: "Deliverables in flight", value: seed.deliverables.length },
+      { label: "Active engagements", value: seed.engagements.length, module: "Engagements" as ModuleName, detail: `${seed.engagements.length} engagement(s) are in flight: ${seed.engagements.map((engagement) => `${engagement.name} (${engagement.stage}, ${engagement.health})`).join("; ")}.` },
+      { label: "Critical/high risks", value: seed.risks.length, module: "RAID & Decisions" as ModuleName, detail: `${seed.risks.length} tracked risk(s): ${seed.risks.map((risk) => `${risk.title} (${risk.severity}, owner ${risk.owner})`).join("; ")}.` },
+      { label: "Open decisions", value: seed.decisions.length, module: "RAID & Decisions" as ModuleName, detail: `${seed.decisions.length} open decision(s): ${seed.decisions.map((decision) => `${decision.title} (${decision.status}, owner ${decision.owner})`).join("; ")}.` },
+      { label: "Deliverables in flight", value: seed.deliverables.length, module: "Deliverables" as ModuleName, detail: `${seed.deliverables.length} deliverable(s) in review: ${seed.deliverables.map((item) => `${item.title} (${item.state})`).join("; ")}.` },
     ],
     [],
   );
@@ -751,7 +775,7 @@ function App() {
               </div>
             </div>
 
-            <ValueProposition role={role} />
+            <ValueProposition role={role} onOpenModule={openModule} />
             <PresentationBrief onStartWalkthrough={startWalkthrough} onOpenMyWork={() => openModule("My Work")} />
             <WorkflowOverview guided={guided} />
             <StageDocumentationPanel engagement={selectedEngagement} workTasks={workTasks} runtimeMode={runtimeMode} />
@@ -760,7 +784,7 @@ function App() {
 
             <div className="metrics-grid">
               {metrics.map((metric) => (
-                <button className="card interactive-card" type="button" key={metric.label} onClick={() => setDetail({ title: metric.label, summary: `This demo currently shows ${metric.value} ${metric.label.toLowerCase()}. In Live mode this card will be backed by governed Dataverse records and permission-filtered reporting.` })}>
+                <button className="card interactive-card" type="button" key={metric.label} onClick={() => setDetail({ title: metric.label, summary: metric.detail, action: `Open ${metric.module}`, onAction: () => openModule(metric.module) })}>
                   <div className="label">{metric.label}</div>
                   <div className="metric">{metric.value}</div>
                 </button>
@@ -769,7 +793,7 @@ function App() {
 
             <div className="signal-grid">
               {lifecycleSignals.map((signal) => (
-                <button className="card signal-card interactive-card" type="button" key={signal.title} onClick={() => setDetail({ title: signal.title, summary: `Current demo signal: ${signal.value}. Use the linked work, evidence, and decision records to understand the source and next action behind this signal.` })}>
+                <button className="card signal-card interactive-card" type="button" key={signal.title} onClick={() => setDetail({ title: signal.title, summary: signal.detail, action: `Open ${signal.module}`, onAction: () => openModule(signal.module) })}>
                   <div className="label">{signal.title}</div>
                   <div className={`metric signal ${signal.tone}`}>{signal.value}</div>
                 </button>
@@ -825,8 +849,8 @@ function App() {
               </div>
             </div>
 
-            <PracticeImprovementPanel improvements={improvements} onAdded={(item) => setImprovements((current) => [...current, item])} />
-            <QualityTrendPanel onSelect={(item) => setDetail(item)} />
+            <PracticeImprovementPanel improvements={improvements} onAdded={(item) => setImprovements((current) => [...current, item])} onSelect={(item) => setDetail(item)} onOpenModule={openModule} />
+            <QualityTrendPanel onSelect={(item) => setDetail(item)} onOpenModule={openModule} />
             <EvidenceChainPanel workTasks={workTasks} risks={seed.risks} decisions={seed.decisions} onSelect={(item) => setDetail(item)} onOpenModule={openModule} />
 
             <div className="section">
@@ -957,7 +981,7 @@ function App() {
   );
 }
 
-function ValueProposition({ role }: { role: Role }) {
+function ValueProposition({ role, onOpenModule }: { role: Role; onOpenModule: (page: ModuleName) => void }) {
   const value = roleValue[role];
   return (
     <section className="value-proposition" aria-labelledby="value-proposition-title">
@@ -966,7 +990,11 @@ function ValueProposition({ role }: { role: Role }) {
         <h2 id="value-proposition-title">{value.title}</h2>
         <p>{value.benefit}</p>
         <div className="value-actions">
-          {value.actions.map((action) => <span key={action}>{action}</span>)}
+          {value.actions.map((action) => (
+            <button type="button" className="value-action" key={action.label} onClick={() => onOpenModule(action.module)}>
+              {action.label}
+            </button>
+          ))}
         </div>
       </div>
       <div className="value-proof">
@@ -1389,7 +1417,7 @@ function IntelligencePanel({
   );
 }
 
-function QualityTrendPanel({ onSelect }: { onSelect: (detail: DetailTarget) => void }) {
+function QualityTrendPanel({ onSelect, onOpenModule }: { onSelect: (detail: DetailTarget) => void; onOpenModule: (page: ModuleName) => void }) {
   return (
     <div className="card quality-trends">
       <div className="records-heading">
@@ -1400,7 +1428,7 @@ function QualityTrendPanel({ onSelect }: { onSelect: (detail: DetailTarget) => v
         {qualityMetrics.map((metric) => {
           const values = metricHistory[metric.id] ?? [];
           const max = Math.max(...values, 1);
-          return <button type="button" className="trend-card interactive-card" key={metric.id} onClick={() => onSelect({ title: metric.name, summary: `Synthetic trend history: baseline ${metric.baseline}${metric.unit === "%" ? "%" : ""}, target ${metric.target}${metric.unit === "%" ? "%" : ""}. In production this metric should be sourced from governed records and reviewed by the practice owner.` })}>
+          return <button type="button" className="trend-card interactive-card" key={metric.id} onClick={() => onSelect({ title: metric.name, summary: `Synthetic trend history: baseline ${metric.baseline}${metric.unit === "%" ? "%" : ""}, target ${metric.target}${metric.unit === "%" ? "%" : ""}. In production this metric should be sourced from governed records and reviewed by the practice owner.`, action: "Open Practice Intelligence", onAction: () => onOpenModule("Practice Intelligence") })}>
             <strong>{metric.name}</strong>
             <div className="trend-bars" aria-label={`${metric.name} trend`}>
               {values.map((value, index) => <span key={`${metric.id}-${index}`} style={{ height: `${Math.max(8, (value / max) * 100)}%` }} title={`${value}${metric.unit === "%" ? "%" : ""}`} />)}

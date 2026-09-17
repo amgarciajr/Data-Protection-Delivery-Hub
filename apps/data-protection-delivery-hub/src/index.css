@@ -1,5 +1,6 @@
 
 :root {
+  --surface: #ffffff;
   font-family: Segoe UI, system-ui, sans-serif;
   color: #333333;
   background: #e5e5e5;
@@ -553,12 +554,22 @@ button:focus-visible {
   margin-top: 16px;
 }
 
-.value-actions span {
+.value-actions button.value-action {
   background: #4c4c4c;
   border: 1px solid #666;
   border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
   font-size: 12px;
   padding: 6px 10px;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+
+.value-actions button.value-action:hover,
+.value-actions button.value-action:focus-visible {
+  background: #ff5800;
+  border-color: #ff5800;
 }
 
 .value-proof {
@@ -1138,10 +1149,15 @@ button:focus-visible {
 }
 
 .practice-metric {
+  background: none;
   border-right: 1px solid #e5e5e5;
+  color: inherit;
+  cursor: pointer;
   display: grid;
   gap: 5px;
   padding-right: 12px;
+  text-align: left;
+  width: 100%;
 }
 
 .practice-metric:last-child {
@@ -1205,11 +1221,16 @@ button:focus-visible {
 
 .practice-action {
   align-items: center;
+  background: none;
   border-top: 1px solid #e5e5e5;
+  color: inherit;
+  cursor: pointer;
   display: flex;
   gap: 16px;
   justify-content: space-between;
   padding: 14px 0;
+  text-align: left;
+  width: 100%;
 }
 
 .practice-action p {
@@ -1835,6 +1856,7 @@ button:focus-visible {
 }
 
 .theme-dark {
+  --surface: #172536;
   background: #333333;
   color: #e6edf5;
   color-scheme: dark;
@@ -1964,6 +1986,40 @@ button:focus-visible {
 
 .theme-dark .detail-modal p {
   color: #c4d5e1;
+}
+
+.theme-dark .resolution-plan {
+  border-color: #2c4258;
+}
+
+.theme-dark .resolution-grid > div {
+  background: #1c2c40;
+}
+
+.theme-dark .resolution-outcome {
+  background: #3b2f1c;
+  border-color: #ffb314;
+  color: #f0d99b;
+}
+
+.theme-dark .search-results {
+  border-color: #2c4258;
+}
+
+.theme-dark .search-results button {
+  border-color: #2c4258;
+}
+
+.theme-dark .search-results button:hover {
+  background: #1c2c40;
+}
+
+.theme-dark .task-edit-form label {
+  color: #e6edf5;
+}
+
+.theme-dark .form-error {
+  color: #ff8080;
 }
 
 .theme-dark .runtime-demo,
