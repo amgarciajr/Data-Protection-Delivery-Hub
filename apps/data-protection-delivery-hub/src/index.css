@@ -388,7 +388,7 @@ button:focus-visible {
   border: 0;
   border-radius: 50%;
   color: #333;
-  cursor: help;
+  cursor: pointer;
   display: inline-flex;
   font-size: 10px;
   font-weight: 800;
@@ -400,26 +400,42 @@ button:focus-visible {
   width: 16px;
 }
 
+.lifecycle-help-button.active {
+  background: #ff5800;
+  color: #fff;
+}
+
 .lifecycle-help-button:focus-visible {
   outline: 3px solid #ffb314;
   outline-offset: 2px;
 }
 
 .lifecycle-detail {
-  align-items: end;
   background: #fff4ed;
   border-left: 4px solid #ff5800;
   border-radius: 8px;
+  color: #3a2412;
   display: grid;
-  gap: 5px;
-  grid-template-columns: 150px 1fr auto;
+  gap: 12px;
   margin-top: 14px;
-  padding: 14px;
+  padding: 14px 16px;
 }
 
-.lifecycle-detail > div {
+.lifecycle-detail-grid {
   display: grid;
-  gap: 3px;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.lifecycle-detail-grid > div {
+  display: grid;
+  gap: 4px;
+}
+
+.lifecycle-detail-grid p,
+.lifecycle-detail-grid ul {
+  color: #3a2412;
+  margin: 0;
 }
 
 .guided-kicker {
@@ -1929,6 +1945,12 @@ button:focus-visible {
 
 .theme-dark .lifecycle-detail {
   background: #3b2f1c;
+  color: #f2e6d8;
+}
+
+.theme-dark .lifecycle-detail-grid p,
+.theme-dark .lifecycle-detail-grid ul {
+  color: #f2e6d8;
 }
 
 .theme-dark .interactive-row {
@@ -2172,7 +2194,7 @@ button:focus-visible {
   .work-task-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .practice-metric { border-right: 0; border-bottom: 1px solid #e5e5e5; padding: 0 0 10px; }
   .practice-action { align-items: flex-start; flex-direction: column;   }
-  .lifecycle-detail { align-items: start; grid-template-columns: 1fr; }
+  .lifecycle-detail-grid { grid-template-columns: 1fr; }
 
   @media (max-width: 560px) {
     .leadership-grid { grid-template-columns: 1fr; }

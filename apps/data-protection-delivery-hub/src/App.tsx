@@ -1023,6 +1023,7 @@ function LiveModeGate({ onReturnToDemo }: { onReturnToDemo: () => void }) {
 function WorkflowOverview({ guided }: { guided: boolean }) {
   const [selectedStage, setSelectedStage] = useState<number | null>(null);
   const selected = selectedStage === null ? null : lifecycleStages[selectedStage];
+  const selectedTemplate = selected ? stageTemplates.find((template) => template.stage === selected.stage) : undefined;
   return (
     <section className="card workflow-overview" aria-labelledby="workflow-title">
       <div className="records-heading">
@@ -1037,16 +1038,28 @@ function WorkflowOverview({ guided }: { guided: boolean }) {
         {lifecycleStages.map((item, index) => (
           <div className="lifecycle-step" key={item.stage}>
             <span className="lifecycle-number">{index + 1}</span>
-            <strong>{item.stage} {guided && <button className="lifecycle-help-button" type="button" aria-label={`Explain ${item.stage} stage`} title={`Expected output: ${item.output}`} onClick={() => setSelectedStage(index)}>i</button>}</strong>
+            <strong>{item.stage} {guided && <button className={`lifecycle-help-button ${selectedStage === index ? "active" : ""}`} type="button" aria-label={`Explain ${item.stage} stage`} aria-expanded={selectedStage === index} onClick={() => setSelectedStage((current) => (current === index ? null : index))}>i</button>}</strong>
             <small>{item.output}</small>
           </div>
         ))}
       </div>
       {selected && (
         <div className="lifecycle-detail" role="status">
-          <div><span className="label accent">Selected stage</span><strong>{selected.stage}</strong></div>
-          <div><span className="label">Expected output</span><span>{selected.output}</span></div>
-          <button className="secondary-button" type="button" onClick={() => setSelectedStage(null)}>Close stage explanation</button>
+          <div className="records-heading">
+            <div><span className="label accent">Selected stage</span><strong>{selected.stage}</strong></div>
+            <button className="secondary-button" type="button" onClick={() => setSelectedStage(null)}>Close stage explanation</button>
+          </div>
+          {selectedTemplate ? (
+            <div className="lifecycle-detail-grid">
+              <div><span className="label">Purpose</span><p>{selectedTemplate.purpose}</p></div>
+              <div><span className="label">Required inputs</span><ul className="bullet-list">{selectedTemplate.requiredInputs.map((input) => <li key={input}>{input}</li>)}</ul></div>
+              <div><span className="label">Expected outputs</span><ul className="bullet-list">{selectedTemplate.expectedOutputs.map((output) => <li key={output}>{output}</li>)}</ul></div>
+              <div><span className="label">Decision rights</span><p>{selectedTemplate.decisionRights}</p></div>
+              <div><span className="label">Exit criteria</span><p>{selectedTemplate.exitCriteria}</p></div>
+            </div>
+          ) : (
+            <div><span className="label">Expected output</span><span>{selected.output}</span></div>
+          )}
         </div>
       )}
       <div className="workflow-footer">
