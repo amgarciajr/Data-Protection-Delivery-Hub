@@ -756,7 +756,7 @@ function App() {
             <WorkflowOverview guided={guided} />
             <StageDocumentationPanel engagement={selectedEngagement} workTasks={workTasks} runtimeMode={runtimeMode} />
             <ProjectStatusReportPanel workTasks={workTasks} runtimeMode={runtimeMode} />
-            <IntelligencePanel onSelect={(item) => setDetail(item)} />
+            <IntelligencePanel workTasks={workTasks} risks={seed.risks} decisions={seed.decisions} onSelect={(item) => setDetail(item)} onOpenModule={openModule} />
 
             <div className="metrics-grid">
               {metrics.map((metric) => (
@@ -1275,12 +1275,88 @@ function ProjectStatusReportPanel({ workTasks, runtimeMode }: { workTasks: WorkT
   );
 }
 
-function IntelligencePanel({ onSelect }: { onSelect: (detail: DetailTarget) => void }) {
-  const signals = [
-    { label: "Likely to fail", value: "Design exception", detail: "Approval overdue; compensating control missing", tone: "Red" },
-    { label: "Decision at risk", value: "Customer ownership", detail: "Confirmation date not recorded", tone: "Amber" },
-    { label: "Evidence gap", value: "Validate & Assure", detail: "12 items submitted; 5 still need review", tone: "Amber" },
-    { label: "Standard opportunity", value: "Transition checklist", detail: "Adoption correlates with cleaner handoffs", tone: "Green" },
+function IntelligencePanel({
+  workTasks,
+  risks,
+  decisions,
+  onSelect,
+  onOpenModule,
+}: {
+  workTasks: WorkTask[];
+  risks: EvidenceChainRisk[];
+  decisions: EvidenceChainDecision[];
+  onSelect: (detail: DetailTarget) => void;
+  onOpenModule: (page: ModuleName) => void;
+}) {
+  const designExceptionTask = workTasks.find((task) => task.id === "task-design-exception");
+  const transitionTask = workTasks.find((task) => task.id === "task-transition-readiness");
+  const ownershipRisk = risks.find((risk) => risk.id === "r1") ?? risks[0];
+  const validateGate = stageGates.find((gate) => gate.name === "Validate & Assure");
+
+  const signals: Array<{
+    label: string;
+    value: string;
+    detail: string;
+    tone: string;
+    summary: string;
+    resolution?: ResolutionPlan;
+    action?: string;
+    onAction?: () => void;
+  }> = [
+    {
+      label: "Likely to fail",
+      value: "Design exception",
+      detail: "Approval overdue; compensating control missing",
+      tone: "Red",
+      summary: designExceptionTask
+        ? `Linked to My Work: ${designExceptionTask.title} (${designExceptionTask.status}, owner ${designExceptionTask.owner}, due ${designExceptionTask.dueDate}). ${designExceptionTask.blocker}`
+        : "This advisory signal should point to an owner, source record, and next action before the next status meeting.",
+      resolution: designExceptionTask ? resolutionFor(designExceptionTask.title, designExceptionTask.owner, designExceptionTask.dueDate, "Blocked") : undefined,
+      action: designExceptionTask ? "Open My Work" : undefined,
+      onAction: designExceptionTask ? () => onOpenModule("My Work") : undefined,
+    },
+    {
+      label: "Decision at risk",
+      value: "Customer ownership",
+      detail: "Confirmation date not recorded",
+      tone: "Amber",
+      summary: ownershipRisk
+        ? `Linked to RAID risk: ${ownershipRisk.title} (${ownershipRisk.severity} priority, owner ${ownershipRisk.owner}, due ${ownershipRisk.due}). Create an owned mitigation task, then edit its outcome and evidence in My Work.`
+        : "This advisory signal should point to an owner, source record, and next action before the next status meeting.",
+      resolution: ownershipRisk ? resolutionFor(ownershipRisk.title, ownershipRisk.owner, ownershipRisk.due, ownershipRisk.severity) : undefined,
+      action: ownershipRisk ? "Create/update My Work task" : undefined,
+      onAction: ownershipRisk
+        ? () =>
+            signalTaskAction(
+              { id: ownershipRisk.id, type: "Risk", title: `Mitigate risk: ${ownershipRisk.title}`, owner: ownershipRisk.owner, dueDate: ownershipRisk.due, stage: "Assess", blocker: "Risk mitigation requires an owner decision.", expectedOutcome: `Mitigation plan for ${ownershipRisk.title} is agreed and tracked.` },
+              () => onOpenModule("My Work"),
+            )
+        : undefined,
+    },
+    {
+      label: "Evidence gap",
+      value: "Validate & Assure",
+      detail: "12 items submitted; 5 still need review",
+      tone: "Amber",
+      summary: validateGate
+        ? `Linked to stage gate: ${validateGate.name} (${validateGate.status}, owner ${validateGate.owner}). ${validateGate.note}. Review mandatory criteria and evidence in Readiness & Assurance.`
+        : "This advisory signal should point to an owner, source record, and next action before the next status meeting.",
+      resolution: validateGate ? resolutionFor(validateGate.name, validateGate.owner, "Before gate review", validateGate.status) : undefined,
+      action: validateGate ? "Open Readiness & Assurance" : undefined,
+      onAction: validateGate ? () => onOpenModule("Readiness & Assurance") : undefined,
+    },
+    {
+      label: "Standard opportunity",
+      value: "Transition checklist",
+      detail: "Adoption correlates with cleaner handoffs",
+      tone: "Green",
+      summary: transitionTask
+        ? `Linked to My Work: ${transitionTask.title} (${transitionTask.status}, owner ${transitionTask.owner}, due ${transitionTask.dueDate}). Adoption of this checklist correlates with cleaner handoffs across engagements.`
+        : "This advisory signal should point to an owner, source record, and next action before the next status meeting.",
+      resolution: transitionTask ? resolutionFor(transitionTask.title, transitionTask.owner, transitionTask.dueDate, transitionTask.status) : undefined,
+      action: transitionTask ? "Open My Work" : undefined,
+      onAction: transitionTask ? () => onOpenModule("My Work") : undefined,
+    },
   ];
   return (
     <section className="card intelligence-panel" aria-labelledby="intelligence-title">
@@ -1293,7 +1369,21 @@ function IntelligencePanel({ onSelect }: { onSelect: (detail: DetailTarget) => v
         <span className="record-count">Advisory signals</span>
       </div>
       <div className="intelligence-grid">
-        {signals.map((signal) => <button type="button" className="intelligence-item interactive-card" key={signal.label} onClick={() => onSelect({ title: signal.value, summary: `${signal.detail} This advisory signal should point to an owner, source record, and next action before the next status meeting.` })}><Pill v={signal.tone} /><div><span className="label">{signal.label}</span><strong>{signal.value}</strong><small>{signal.detail}</small></div></button>)}
+        {signals.map((signal) => (
+          <button
+            type="button"
+            className="intelligence-item interactive-card"
+            key={signal.label}
+            onClick={() => onSelect({ title: signal.value, summary: signal.summary, resolution: signal.resolution, action: signal.action, onAction: signal.onAction })}
+          >
+            <Pill v={signal.tone} />
+            <div>
+              <span className="label">{signal.label}</span>
+              <strong>{signal.value}</strong>
+              <small>{signal.detail}</small>
+            </div>
+          </button>
+        ))}
       </div>
     </section>
   );
