@@ -65,6 +65,22 @@ button:focus-visible {
   width: 100%;
 }
 
+.help-button {
+  background: #4c4c4c;
+  border: 1px solid #2a5b78;
+  border-radius: 8px;
+  color: #e9f7fa;
+  cursor: pointer;
+  font-size: 12px;
+  margin-bottom: 14px;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.help-button:hover {
+  border-color: #ff5800;
+}
+
 .side-actions {
   display: grid;
   gap: 8px;
@@ -1800,6 +1816,145 @@ button:focus-visible {
   width: 92vw;
 }
 
+.help-pane {
+  max-width: 640px;
+}
+
+.help-intro {
+  color: #555;
+  margin-top: -12px;
+}
+
+.help-tabs {
+  border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+
+.help-tabs button {
+  background: transparent;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  color: #555;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 10px;
+}
+
+.help-tabs button.active {
+  border-bottom-color: #ff5800;
+  color: #ff5800;
+}
+
+.help-body h3 {
+  margin: 18px 0 8px;
+}
+
+.help-body h3:first-child {
+  margin-top: 0;
+}
+
+.help-tip-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding-left: 20px;
+}
+
+.info-tip-inline {
+  background: #4c4c4c;
+  border-radius: 50%;
+  color: white;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 800;
+  height: 16px;
+  justify-content: center;
+  align-items: center;
+  width: 16px;
+}
+
+.help-role-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 20px;
+}
+
+.help-role-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.help-role-card {
+  background: #f7f7f7;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.help-role-card.current {
+  border: 2px solid #ff5800;
+}
+
+.help-role-card small {
+  color: #666;
+}
+
+.help-glossary {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+}
+
+.help-glossary dt {
+  font-weight: 700;
+}
+
+.help-glossary dd {
+  color: #555;
+  margin: 2px 0 0;
+}
+
+.help-areas-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.help-area-card {
+  background: #f7f7f7;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.help-area-card:hover {
+  border: 1px solid #ff5800;
+  padding: 11px;
+}
+
+.help-area-card span {
+  color: #666;
+  font-size: 13px;
+}
+
+.grid-section-heading {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin: 24px 0 -4px;
+}
+
 .settings-header {
   align-items: flex-start;
   display: flex;
@@ -2020,6 +2175,34 @@ button:focus-visible {
 
 .theme-dark .form-error {
   color: #ff8080;
+}
+
+.theme-dark .help-intro,
+.theme-dark .help-role-card small,
+.theme-dark .help-area-card span,
+.theme-dark .help-glossary dd {
+  color: #c4d5e1;
+}
+
+.theme-dark .help-tabs {
+  border-bottom-color: #2c4258;
+}
+
+.theme-dark .help-tabs button {
+  color: #c4d5e1;
+}
+
+.theme-dark .help-tabs button.active {
+  color: #ff9d4d;
+}
+
+.theme-dark .help-role-card,
+.theme-dark .help-area-card {
+  background: #1c2c40;
+}
+
+.theme-dark .help-area-card:hover {
+  border-color: #ff9d4d;
 }
 
 .theme-dark .runtime-demo,

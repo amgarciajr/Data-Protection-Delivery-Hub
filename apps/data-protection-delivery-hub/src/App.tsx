@@ -401,6 +401,117 @@ function InfoTip({ text }: { text: string }) {
   return <span className="info-tip" tabIndex={0} aria-label={text}>i<span role="tooltip">{text}</span></span>;
 }
 
+const glossary: { term: string; meaning: string }[] = [
+  { term: "RAID", meaning: "Risks, Assumptions, Issues, and Decisions — the register used to track anything that could affect delivery and to record who resolved it and why." },
+  { term: "Gate / stage gate", meaning: "A checkpoint between lifecycle stages. Work only advances when the required evidence, ownership, and approval are satisfied — protecting the next stage from unresolved problems." },
+  { term: "Evidence chain", meaning: "The traceable path from a requirement to the evidence gathered, its review outcome, and the task or decision it is linked to — proof of why a status is what it is." },
+  { term: "Readiness", meaning: "Whether required evidence, tests, ownership, support, and mandatory criteria are all satisfied so the team can move forward with confidence." },
+  { term: "Delivery Quality Index (DQI)", meaning: "A single 0–100 score combining acceptance rates, recurring blockers, and stage-gate escapes into one delivery-quality signal leadership can track over time." },
+  { term: "Stage-gate escape rate", meaning: "The percentage of items that pass a stage gate but are later found incomplete, defective, or reworked — a lower number means gates are catching problems earlier." },
+  { term: "Reusable asset adoption", meaning: "The percentage of engagements or teams using standardized templates and playbooks instead of rebuilding work from scratch — higher adoption means faster, more consistent delivery." },
+  { term: "Recurring blocker rate", meaning: "The percentage of blockers or issues that repeat across engagements, signaling a systemic gap in process or standards rather than a one-off problem." },
+  { term: "Zones (Start · Deliver · Prove · Transition · Improve)", meaning: "The five journey groupings of workspaces that mirror the engagement lifecycle, from kickoff through continuous improvement." },
+  { term: "Demo mode vs. Live mode", meaning: "Demo mode uses synthetic seed data saved locally in this browser. Live mode requires an approved, governed data connector before it can be used." },
+];
+
+function HelpGuide({ role, onOpenModule, onClose, onStartWalkthrough }: { role: Role; onOpenModule: (page: ModuleName) => void; onClose: () => void; onStartWalkthrough: () => void }) {
+  const [tab, setTab] = useState<"start" | "role" | "glossary" | "areas">("start");
+  const myValue = roleValue[role];
+  const tabs: { id: typeof tab; label: string }[] = [
+    { id: "start", label: "Getting started" },
+    { id: "role", label: "Roles & what you can do" },
+    { id: "glossary", label: "Glossary" },
+    { id: "areas", label: "Areas of the Hub" },
+  ];
+  return (
+    <div className="settings-backdrop" role="presentation" onClick={onClose}>
+      <section className="settings-pane help-pane" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={(event) => event.stopPropagation()}>
+        <div className="settings-header">
+          <div><div className="label">Help &amp; guide</div><h2 id="help-title">Learn the Hub</h2></div>
+          <button type="button" className="close-button" aria-label="Close" onClick={onClose}>×</button>
+        </div>
+        <p className="help-intro">Built for every level — new hires learning delivery for the first time, practitioners doing daily work, and directors who need the story fast.</p>
+        <div className="help-tabs" role="tablist" aria-label="Help topics">
+          {tabs.map((item) => (
+            <button key={item.id} type="button" role="tab" aria-selected={tab === item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}>{item.label}</button>
+          ))}
+        </div>
+
+        {tab === "start" && (
+          <div className="help-body">
+            <h3>New here? Start with these three steps</h3>
+            <div className="guided-steps">
+              <div><strong>1 · See the signal</strong><span>Command Center surfaces what needs attention before the status meeting — risks, decisions, evidence gaps, and readiness.</span></div>
+              <div><strong>2 · Trace the source</strong><span>Click any card, signal, or lifecycle stage to see its owner, timing, context, and the record behind it.</span></div>
+              <div><strong>3 · Move the work</strong><span>Open the right workspace, assign the next action in My Work, attach evidence, and record the decision.</span></div>
+            </div>
+            <h3>Quick tips</h3>
+            <ul className="help-tip-list">
+              <li>Hover or focus any small <span className="info-tip-inline">i</span> icon next to a heading for a plain-language explanation.</li>
+              <li>The sidebar is grouped by journey zone (Start → Deliver → Prove → Transition → Improve) so you always know where you are in the lifecycle.</li>
+              <li>Use the search box in the header to jump straight to a workspace by name or description.</li>
+              <li>Switch your role in Settings to preview exactly what a Consultant, Architect, Engagement Manager, or Director sees.</li>
+              <li>Everything in this demo runs on synthetic data saved to your browser — nothing here is a live production system.</li>
+            </ul>
+            <button type="button" className="primary-button" onClick={() => { onClose(); onStartWalkthrough(); }}>Run the guided leadership walkthrough</button>
+          </div>
+        )}
+
+        {tab === "role" && (
+          <div className="help-body">
+            <h3>Your current role: {role}</h3>
+            <p><strong>{myValue.title}.</strong> {myValue.benefit}</p>
+            <div className="help-role-actions">
+              {myValue.actions.map((action) => (
+                <button type="button" key={action.label} className="secondary-button" onClick={() => { onOpenModule(action.module); onClose(); }}>{action.label}</button>
+              ))}
+            </div>
+            <h3>What every role focuses on</h3>
+            <div className="help-role-grid">
+              {roleOptions.map((option) => (
+                <div key={option} className={option === role ? "help-role-card current" : "help-role-card"}>
+                  <strong>{option}{option === role ? " (you)" : ""}</strong>
+                  <p>{roleValue[option].title}</p>
+                  <small>{roleValue[option].benefit}</small>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === "glossary" && (
+          <div className="help-body">
+            <h3>Terms used across the Hub</h3>
+            <dl className="help-glossary">
+              {glossary.map((entry) => (
+                <div key={entry.term}>
+                  <dt>{entry.term}</dt>
+                  <dd>{entry.meaning}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+
+        {tab === "areas" && (
+          <div className="help-body">
+            <h3>What each workspace is for</h3>
+            <p>Select any workspace to open it directly.</p>
+            <div className="help-areas-grid">
+              {nav.filter((item) => roleModules[role].includes(item)).map((item) => (
+                <button type="button" key={item} className="help-area-card" onClick={() => { onOpenModule(item); onClose(); }}>
+                  <strong>{item}</strong>
+                  <span>{descriptions[item]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function GuidedWelcome({ onClose }: { onClose: () => void }) {
   return (
     <div className="guided-backdrop" role="presentation">
@@ -599,6 +710,7 @@ function App() {
   const [role, setRole] = useState<Role>(() => (window.localStorage.getItem("dpdh-role") as Role) || "Engagement Manager");
   const [language, setLanguage] = useState<Language>(() => (window.localStorage.getItem("dpdh-language") as Language) || "English");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>(repositoryConfig.runtimeMode);
   const [guided, setGuided] = useState(() => window.localStorage.getItem("dpdh-guided") !== "off");
   const [showWelcome, setShowWelcome] = useState(() => window.localStorage.getItem("dpdh-guided-seen") !== "yes");
@@ -693,6 +805,7 @@ function App() {
         >
           {theme === "light" ? "Dark theme" : "Light theme"}
         </button>
+        <button type="button" className="help-button" onClick={() => setHelpOpen(true)} title="Help, glossary, and role guide">Help</button>
         <button type="button" className="user-button" onClick={() => setSettingsOpen(true)}>
           <span className="avatar" aria-hidden="true">DM</span>
           <span><strong>Demo user</strong><small>{role}</small></span>
@@ -782,6 +895,7 @@ function App() {
             <ProjectStatusReportPanel workTasks={workTasks} runtimeMode={runtimeMode} />
             <IntelligencePanel workTasks={workTasks} risks={seed.risks} decisions={seed.decisions} onSelect={(item) => setDetail(item)} onOpenModule={openModule} />
 
+            <div className="grid-section-heading"><span className="label accent">Portfolio metrics</span><InfoTip text="These counts summarize active engagements, risk, decisions, and deliverables across the portfolio. Select any card to see the underlying records and open the workspace where they live." /></div>
             <div className="metrics-grid">
               {metrics.map((metric) => (
                 <button className="card interactive-card" type="button" key={metric.label} onClick={() => setDetail({ title: metric.label, summary: metric.detail, action: `Open ${metric.module}`, onAction: () => openModule(metric.module) })}>
@@ -791,6 +905,7 @@ function App() {
               ))}
             </div>
 
+            <div className="grid-section-heading"><span className="label accent">Readiness signals</span><InfoTip text="These signals show how close the work is to being release-ready: how much evidence is complete, how many deliverables are ready, and how many risks still need action. Select a card for the detail behind the number." /></div>
             <div className="signal-grid">
               {lifecycleSignals.map((signal) => (
                 <button className="card signal-card interactive-card" type="button" key={signal.title} onClick={() => setDetail({ title: signal.title, summary: signal.detail, action: `Open ${signal.module}`, onAction: () => openModule(signal.module) })}>
@@ -976,6 +1091,7 @@ function App() {
       )}
       {showWelcome && guided && <GuidedWelcome onClose={closeWelcome} />}
       {demoMode === "walkthrough" && <DemoWalkthrough step={walkthroughStep} onNext={() => setWalkthroughStep((current) => current + 1)} onClose={() => setDemoMode("standard")} onNavigate={openModule} />}
+      {helpOpen && <HelpGuide role={role} onOpenModule={openModule} onClose={() => setHelpOpen(false)} onStartWalkthrough={startWalkthrough} />}
       {detail && <DetailModal detail={detail} onClose={() => setDetail(null)} />}
     </div>
   );
