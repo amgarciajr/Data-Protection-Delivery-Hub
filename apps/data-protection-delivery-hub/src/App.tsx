@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import seed from "./data/seed.json";
-import { addPracticeImprovement, addRecord, evidenceChainNodeLabels, generateProjectStatusReport, generateStageDocumentation, getAuditEvents, getConnectionReadiness, getEvidenceChains, getPracticeImprovements, getRecords, getRuntimeConfig, getWorkTasks, metricHistory, qualityMetrics, repositoryConfig, reusableAssets, stageDocumentationSections, stageTemplates, updateWorkTask, updateWorkTaskStatus, upsertWorkTaskFromSignal, type EvidenceChain, type EvidenceChainDecision, type EvidenceChainNode, type EvidenceChainRisk, type HubRecord, type PracticeImprovement, type RuntimeMode, type StageDocumentationSectionId, type StageDocumentationSectionSelection, type WorkTask, type WorkTaskStatus } from "./data/repository";
+import { addComment, addPracticeImprovement, addRecord, evidenceChainNodeLabels, generateProjectStatusReport, generateStageDocumentation, getAuditEvents, getComments, getConnectionReadiness, getEvidenceChains, getGateApprovals, getNotifications, getPracticeImprovements, getReadNotificationIds, getRecords, getRuntimeConfig, getWorkTasks, logReportGenerated, markAllNotificationsRead, markNotificationRead, metricHistory, qualityMetrics, recordGateApproval, repositoryConfig, reusableAssets, stageDocumentationSections, stageTemplates, updateWorkTask, updateWorkTaskStatus, upsertWorkTaskFromSignal, type EvidenceChain, type EvidenceChainDecision, type EvidenceChainNode, type EvidenceChainRisk, type GateApproval, type HubRecord, type NotificationItem, type PracticeImprovement, type RuntimeMode, type StageDocumentationSectionId, type StageDocumentationSectionSelection, type TaskComment, type WorkTask, type WorkTaskStatus } from "./data/repository";
+import pptxgen from "pptxgenjs";
 import "./index.css";
 
 const nav = [
@@ -38,7 +39,7 @@ type ResolutionPlan = {
   resolvedWhen: string;
 };
 
-type DetailTarget = { title: string; summary: string; action?: string; onAction?: () => void; resolution?: ResolutionPlan };
+type DetailTarget = { title: string; summary: string; action?: string; onAction?: () => void; resolution?: ResolutionPlan; recordId?: string; recordType?: string };
 
 const zoneModules: Record<Zone, ModuleName[]> = {
   Start: ["Command Center", "My Work"],
@@ -313,10 +314,56 @@ function Pill({ v }: { v: string }) {
   return <span className={`pill ${v}`}>{v}</span>;
 }
 
+// Shared accessibility behavior for modal dialogs: focuses the first focusable
+// element on open, traps Tab/Shift+Tab within the dialog, closes on Escape, and
+// restores focus to the element that triggered the dialog when it closes.
+// `active` lets a dialog that is conditionally rendered inside an always-mounted
+// parent (e.g. the Settings pane) re-run the setup each time it opens.
+function useDialogA11y(onClose: () => void, active: boolean = true) {
+  const containerRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!active) return;
+    const container = containerRef.current;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const focusableSelector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const getFocusable = () => container ? Array.from(container.querySelectorAll<HTMLElement>(focusableSelector)) : [];
+    const focusable = getFocusable();
+    (focusable[0] ?? container)?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = getFocusable();
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    container?.addEventListener("keydown", handleKeyDown);
+    return () => {
+      container?.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+  return containerRef;
+}
+
 function DetailModal({ detail, onClose }: { detail: DetailTarget; onClose: () => void }) {
+  const dialogRef = useDialogA11y(onClose);
   return (
     <div className="detail-backdrop" role="presentation" onClick={onClose}>
-      <section className="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title" onClick={(event) => event.stopPropagation()}>
+      <section ref={dialogRef as never} tabIndex={-1} className="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title" onClick={(event) => event.stopPropagation()}>
         <div className="label accent">Interactive detail</div>
         <h2 id="detail-title">{detail.title}</h2>
         <p>{detail.summary}</p>
@@ -335,6 +382,7 @@ function DetailModal({ detail, onClose }: { detail: DetailTarget; onClose: () =>
             <div className="resolution-outcome"><strong>Resolved when:</strong> {detail.resolution.resolvedWhen}</div>
           </div>
         )}
+        {detail.recordId && <CommentThread recordId={detail.recordId} recordType={detail.recordType ?? "Record"} />}
         <div className="detail-actions">
           <button className="secondary-button" type="button" onClick={onClose}>Close</button>
           {detail.action && detail.onAction && <button className="primary-button" type="button" onClick={() => { detail.onAction?.(); onClose(); }}>{detail.action}</button>}
@@ -343,6 +391,51 @@ function DetailModal({ detail, onClose }: { detail: DetailTarget; onClose: () =>
     </div>
   );
 }
+
+// A lightweight, always-local comment thread attachable to any record (work task,
+// risk, or decision). Comments persist to browser storage and @mentions are
+// highlighted; no live directory lookup or notification delivery is used.
+function CommentThread({ recordId, recordType }: { recordId: string; recordType: string }) {
+  const [comments, setComments] = useState<TaskComment[]>(() => getComments(recordId));
+  const [author, setAuthor] = useState("Demo user");
+  const [body, setBody] = useState("");
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!body.trim()) return;
+    const created = addComment(recordId, recordType, author, body);
+    setComments((current) => [...current, created]);
+    setBody("");
+  }
+
+  function renderBody(text: string) {
+    const parts = text.split(/(@[A-Za-z][\w.-]*)/g);
+    return parts.map((part, index) => part.startsWith("@") ? <strong className="mention" key={index}>{part}</strong> : <span key={index}>{part}</span>);
+  }
+
+  return (
+    <div className="comment-thread">
+      <span className="label">Comments &amp; mentions ({comments.length})</span>
+      {comments.length > 0 && (
+        <ul className="comment-list">
+          {comments.map((comment) => (
+            <li key={comment.id}>
+              <div className="comment-meta"><strong>{comment.author}</strong><small>{new Date(comment.createdOn).toLocaleString()}</small></div>
+              <p>{renderBody(comment.body)}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form className="comment-form" onSubmit={submit}>
+        <input aria-label="Your name" value={author} onChange={(event) => setAuthor(event.target.value)} placeholder="Your name" />
+        <textarea aria-label="Add a comment" value={body} onChange={(event) => setBody(event.target.value)} placeholder="Add a comment. Use @name to mention someone." />
+        <button className="secondary-button" type="submit">Post comment</button>
+      </form>
+    </div>
+  );
+}
+
+
 
 function signalTaskAction(
   signal: { id: string; type: "Risk" | "Decision"; title: string; owner: string; dueDate: string; stage: string; blocker: string; expectedOutcome: string },
@@ -416,6 +509,7 @@ const glossary: { term: string; meaning: string }[] = [
 
 function HelpGuide({ role, onOpenModule, onClose, onStartWalkthrough }: { role: Role; onOpenModule: (page: ModuleName) => void; onClose: () => void; onStartWalkthrough: () => void }) {
   const [tab, setTab] = useState<"start" | "role" | "glossary" | "areas">("start");
+  const dialogRef = useDialogA11y(onClose);
   const myValue = roleValue[role];
   const tabs: { id: typeof tab; label: string }[] = [
     { id: "start", label: "Getting started" },
@@ -425,7 +519,7 @@ function HelpGuide({ role, onOpenModule, onClose, onStartWalkthrough }: { role: 
   ];
   return (
     <div className="settings-backdrop" role="presentation" onClick={onClose}>
-      <section className="settings-pane help-pane" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={(event) => event.stopPropagation()}>
+      <section ref={dialogRef as never} tabIndex={-1} className="settings-pane help-pane" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={(event) => event.stopPropagation()}>
         <div className="settings-header">
           <div><div className="label">Help &amp; guide</div><h2 id="help-title">Learn the Hub</h2></div>
           <button type="button" className="close-button" aria-label="Close" onClick={onClose}>×</button>
@@ -513,9 +607,10 @@ function HelpGuide({ role, onOpenModule, onClose, onStartWalkthrough }: { role: 
 }
 
 function GuidedWelcome({ onClose }: { onClose: () => void }) {
+  const dialogRef = useDialogA11y(onClose);
   return (
     <div className="guided-backdrop" role="presentation">
-      <section className="guided-card" role="dialog" aria-modal="true" aria-labelledby="guided-title">
+      <section ref={dialogRef as never} tabIndex={-1} className="guided-card" role="dialog" aria-modal="true" aria-labelledby="guided-title">
         <div className="guided-kicker">Welcome to the Hub</div>
         <h2 id="guided-title">A guided way to move delivery forward</h2>
         <p>Start with the action in front of you, prove it with evidence, and use the lifecycle to make readiness and handoff clear.</p>
@@ -539,9 +634,10 @@ const walkthroughSteps = [
 
 function DemoWalkthrough({ step, onNext, onClose, onNavigate }: { step: number; onNext: () => void; onClose: () => void; onNavigate: (page: ModuleName) => void }) {
   const current = walkthroughSteps[step];
+  const dialogRef = useDialogA11y(onClose);
   return (
     <div className="guided-backdrop" role="presentation">
-      <section className="guided-card walkthrough-card" role="dialog" aria-modal="true" aria-labelledby="walkthrough-title">
+      <section ref={dialogRef as never} tabIndex={-1} className="guided-card walkthrough-card" role="dialog" aria-modal="true" aria-labelledby="walkthrough-title">
         <div className="guided-kicker">Leadership demo · {step + 1} of {walkthroughSteps.length}</div>
         <h2 id="walkthrough-title">{current.title}</h2>
         <p>{current.body}</p>
@@ -701,6 +797,195 @@ function buildMailtoLink(subject: string, body: string) {
   return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(safeBody)}`;
 }
 
+// Builds and downloads a real, editable .pptx leadership deck entirely in the browser
+// using pptxgenjs, from the same synthetic/local data already loaded in this session.
+// No server rendering, template service, or live connector is used.
+async function generateLeadershipDeck(workTasks: WorkTask[]) {
+  const pres = new pptxgen();
+  pres.defineLayout({ name: "DPDH_LAYOUT", width: 10, height: 5.63 });
+  pres.layout = "DPDH_LAYOUT";
+  const navy = "1C2C40";
+  const accent = "2E6FA3";
+  const green = "2E7D46";
+  const amber = "B5790A";
+  const red = "B3312C";
+
+  const mandatoryFailures = readinessCriteria.filter((criterion) => criterion.mandatory && criterion.status !== "Green");
+  const recommendation = mandatoryFailures.length > 0 ? "No-go" : "Go with conditions";
+  const toneColor = (status: string) => status === "Green" ? green : status === "Amber" ? amber : red;
+
+  const title = pres.addSlide();
+  title.background = { color: navy };
+  title.addText("Data Protection Delivery Hub", { x: 0.5, y: 1.7, w: 9, h: 1, fontSize: 32, bold: true, color: "FFFFFF" });
+  title.addText("Leadership project status", { x: 0.5, y: 2.5, w: 9, h: 0.6, fontSize: 18, color: "CFE0F0" });
+  title.addText(`Generated ${new Date().toLocaleDateString()} · Release recommendation: ${recommendation}`, { x: 0.5, y: 3.1, w: 9, h: 0.5, fontSize: 14, color: "9FD0F0" });
+
+  const impact = pres.addSlide();
+  impact.addText("Why this matters to the business", { x: 0.4, y: 0.3, w: 9.2, h: 0.5, fontSize: 22, bold: true, color: navy });
+  impact.addText(
+    businessImpact.slice(0, 6).flatMap((item) => [{ text: `${item.outcome}: `, options: { bold: true, color: accent, breakLine: false } }, { text: item.how, options: { breakLine: true, color: "222222" } }]),
+    { x: 0.4, y: 0.9, w: 9.2, h: 4.4, fontSize: 13, valign: "top" },
+  );
+
+  const portfolio = pres.addSlide();
+  portfolio.addText("Portfolio snapshot", { x: 0.4, y: 0.3, w: 9.2, h: 0.5, fontSize: 22, bold: true, color: navy });
+  portfolio.addTable(
+    [
+      [{ text: "Engagement", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }, { text: "Stage", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }, { text: "Health", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }, { text: "Progress", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }],
+      ...seed.engagements.map((engagement) => [
+        { text: engagement.name },
+        { text: engagement.stage },
+        { text: engagement.health, options: { color: toneColor(engagement.health), bold: true } },
+        { text: `${engagement.progress}%` },
+      ]),
+    ],
+    { x: 0.4, y: 0.95, w: 9.2, fontSize: 12, autoPage: false },
+  );
+
+  const risksSlide = pres.addSlide();
+  risksSlide.addText("Risks and decisions", { x: 0.4, y: 0.3, w: 9.2, h: 0.5, fontSize: 22, bold: true, color: navy });
+  risksSlide.addTable(
+    [
+      [{ text: "Risk", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }, { text: "Severity", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }, { text: "Owner", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }, { text: "Due", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }],
+      ...seed.risks.map((risk) => [{ text: risk.title }, { text: risk.severity, options: { color: toneColor(risk.severity === "Critical" || risk.severity === "High" ? "Red" : "Amber"), bold: true } }, { text: risk.owner }, { text: risk.due }]),
+    ],
+    { x: 0.4, y: 0.95, w: 9.2, fontSize: 12, autoPage: false },
+  );
+  risksSlide.addTable(
+    [
+      [{ text: "Decision", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }, { text: "Status", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }, { text: "Owner", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }],
+      ...seed.decisions.map((decision) => [{ text: decision.title }, { text: decision.status, options: { color: toneColor(decision.status === "Overdue" ? "Red" : "Amber"), bold: true } }, { text: decision.owner }]),
+    ],
+    { x: 0.4, y: 2.9, w: 9.2, fontSize: 12, autoPage: false },
+  );
+
+  const gatesSlide = pres.addSlide();
+  gatesSlide.addText("Stage-gate watchlist", { x: 0.4, y: 0.3, w: 9.2, h: 0.5, fontSize: 22, bold: true, color: navy });
+  gatesSlide.addTable(
+    [
+      [{ text: "Gate", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }, { text: "Status", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }, { text: "Owner", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }, { text: "Note", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }],
+      ...stageGates.map((gate) => [{ text: gate.name }, { text: gate.status, options: { color: toneColor(gate.status), bold: true } }, { text: gate.owner }, { text: gate.note }]),
+    ],
+    { x: 0.4, y: 0.95, w: 9.2, fontSize: 12, autoPage: false },
+  );
+  const blockedTasks = workTasks.filter((task) => task.status === "Blocked");
+  gatesSlide.addText(`My Work: ${workTasks.length} tracked task(s), ${blockedTasks.length} blocked.`, { x: 0.4, y: 3.4, w: 9.2, h: 0.4, fontSize: 13, color: "444444" });
+
+  const metricsSlide = pres.addSlide();
+  metricsSlide.addText("Quality metrics", { x: 0.4, y: 0.3, w: 9.2, h: 0.5, fontSize: 22, bold: true, color: navy });
+  metricsSlide.addTable(
+    [
+      [{ text: "Metric", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }, { text: "Baseline", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }, { text: "Target", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }, { text: "Actual", options: { bold: true, fill: { color: navy }, color: "FFFFFF" } }],
+      ...qualityMetrics.map((metric) => [{ text: metric.name }, { text: `${metric.baseline}${metric.unit === "%" ? "%" : ""}` }, { text: `${metric.target}${metric.unit === "%" ? "%" : ""}` }, { text: `${metric.actual}${metric.unit === "%" ? "%" : ""}` }]),
+    ],
+    { x: 0.4, y: 0.95, w: 9.2, fontSize: 12, autoPage: false },
+  );
+
+  await pres.writeFile({ fileName: `dpdh-leadership-deck-${new Date().toISOString().slice(0, 10)}.pptx` });
+}
+
+// Bell-icon notification center. All items are derived locally from work tasks,
+// risks, and decisions already loaded in this browser session — there is no
+// live connector, push service, or scheduled email behind these alerts.
+function NotificationCenter({
+  workTasks,
+  risks,
+  decisions,
+  onOpenModule,
+  onSelect,
+}: {
+  workTasks: WorkTask[];
+  risks: EvidenceChainRisk[];
+  decisions: EvidenceChainDecision[];
+  onOpenModule: (page: ModuleName) => void;
+  onSelect: (detail: DetailTarget) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [readIds, setReadIds] = useState<string[]>(() => getReadNotificationIds());
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const notifications = useMemo(() => getNotifications(workTasks, risks, decisions), [workTasks, risks, decisions]);
+  const unreadCount = notifications.filter((item) => !readIds.includes(item.id)).length;
+
+  useEffect(() => {
+    if (!open) return;
+    function handlePointer(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) setOpen(false);
+    }
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handlePointer);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handlePointer);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  function openItem(item: NotificationItem) {
+    markNotificationRead(item.id);
+    setReadIds((current) => Array.from(new Set([...current, item.id])));
+    onOpenModule(item.module as ModuleName);
+    onSelect({
+      title: item.title,
+      summary: item.message,
+      resolution: resolutionFor(item.title, "Accountable owner", "See linked record", item.severity === "Red" ? "Blocked" : "Needs attention"),
+      recordId: item.recordId,
+      recordType: item.recordType,
+    });
+    setOpen(false);
+  }
+
+  function markAllRead() {
+    const ids = notifications.map((item) => item.id);
+    markAllNotificationsRead(ids);
+    setReadIds((current) => Array.from(new Set([...current, ...ids])));
+  }
+
+  return (
+    <div className="notification-center" ref={containerRef}>
+      <button
+        type="button"
+        className="notification-bell"
+        aria-haspopup="true"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        title="Overdue items, due-soon items, and predictive risk signals"
+      >
+        <span aria-hidden="true">🔔</span>
+        <span className="sr-only">Notifications</span>
+        {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
+      </button>
+      {open && (
+        <div className="notification-panel" role="dialog" aria-label="Notifications" aria-live="polite">
+          <div className="notification-panel-header">
+            <strong>Notifications</strong>
+            {notifications.length > 0 && <button type="button" className="link-button" onClick={markAllRead}>Mark all read</button>}
+          </div>
+          <p className="muted notification-note">Computed locally from current work tasks, risks, and decisions. No live alerting service is used.</p>
+          {notifications.length === 0 ? (
+            <p className="notification-empty">Nothing overdue, due soon, or flagged as a predictive risk right now.</p>
+          ) : (
+            <ul className="notification-list">
+              {notifications.map((item) => (
+                <li key={item.id} className={readIds.includes(item.id) ? "read" : "unread"}>
+                  <button type="button" onClick={() => openItem(item)}>
+                    <Pill v={item.severity} />
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>{item.message}</small>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [page, setPage] = useState<ModuleName>("Command Center");
   const [zone, setZone] = useState<Zone>("Start");
@@ -721,6 +1006,7 @@ function App() {
   const connection = getConnectionReadiness();
   const runtime = getRuntimeConfig();
   const [improvements, setImprovements] = useState<PracticeImprovement[]>(() => getPracticeImprovements());
+  const settingsDialogRef = useDialogA11y(() => setSettingsOpen(false), settingsOpen);
   const visibleNav = zoneModules[zone].filter((item) => roleModules[role].includes(item));
   const selectedEngagement = seed.engagements.find((engagement) => engagement.id === engagementId) ?? seed.engagements[0];
   const searchResults = useMemo(() => {
@@ -797,6 +1083,7 @@ function App() {
         </div>
 
         <div className="side-actions">
+        <NotificationCenter workTasks={workTasks} risks={seed.risks} decisions={seed.decisions} onOpenModule={openModule} onSelect={setDetail} />
         <button
           type="button"
           className="theme-toggle"
@@ -998,7 +1285,7 @@ function App() {
                 <div className="card">
                   <h2>Priority risks</h2>
                   {seed.risks.map((risk) => (
-                    <button type="button" key={risk.id} className="list-item interactive-list-item" onClick={() => setDetail({ title: risk.title, summary: `${risk.severity} priority risk owned by ${risk.owner}, due ${risk.due}. Create an owned mitigation task, then edit its outcome and evidence in My Work.`, resolution: resolutionFor(risk.title, risk.owner, risk.due, risk.severity), action: "Create/update My Work task", onAction: () => signalTaskAction({ id: risk.id, type: "Risk", title: `Mitigate risk: ${risk.title}`, owner: risk.owner, dueDate: risk.due, stage: "Assess", blocker: "Risk mitigation requires an owner decision.", expectedOutcome: `Mitigation plan for ${risk.title} is agreed and tracked.` }, () => openModule("My Work")) })}>
+                    <button type="button" key={risk.id} className="list-item interactive-list-item" onClick={() => setDetail({ title: risk.title, summary: `${risk.severity} priority risk owned by ${risk.owner}, due ${risk.due}. Create an owned mitigation task, then edit its outcome and evidence in My Work.`, resolution: resolutionFor(risk.title, risk.owner, risk.due, risk.severity), action: "Create/update My Work task", onAction: () => signalTaskAction({ id: risk.id, type: "Risk", title: `Mitigate risk: ${risk.title}`, owner: risk.owner, dueDate: risk.due, stage: "Assess", blocker: "Risk mitigation requires an owner decision.", expectedOutcome: `Mitigation plan for ${risk.title} is agreed and tracked.` }, () => openModule("My Work")), recordId: risk.id, recordType: "Risk" })}>
                       <Pill v={risk.severity} /> <strong>{risk.title}</strong>
                       <br />
                       <small>
@@ -1011,7 +1298,7 @@ function App() {
                 <div className="card">
                   <h2>Stage gate watchlist</h2>
                   {stageGates.map((gate) => (
-                    <button className="gate-row interactive-row" type="button" key={gate.name} onClick={() => setDetail({ title: gate.name, summary: `${gate.status} gate owned by ${gate.owner}. Review mandatory criteria, evidence, unresolved risks, and authorized approval before advancing the engagement.`, resolution: resolutionFor(gate.name, gate.owner, "Before gate review", gate.status), action: "Open Readiness & Assurance", onAction: () => openModule("Readiness & Assurance") })}>
+                    <button className="gate-row interactive-row" type="button" key={gate.name} onClick={() => setDetail({ title: gate.name, summary: `${gate.status} gate owned by ${gate.owner}. Review mandatory criteria, evidence, unresolved risks, and authorized approval before advancing the engagement.`, resolution: resolutionFor(gate.name, gate.owner, "Before gate review", gate.status), action: "Open Readiness & Assurance", onAction: () => openModule("Readiness & Assurance"), recordId: gate.name, recordType: "StageGate" })}>
                       <div>
                         <strong>{gate.name}</strong>
                         <div className="mini-meta">{gate.owner}</div>
@@ -1024,7 +1311,7 @@ function App() {
                 <div className="card">
                   <h2>Decisions</h2>
                   {seed.decisions.map((decision) => (
-                    <button type="button" key={decision.id} className="list-item interactive-list-item" onClick={() => setDetail({ title: decision.title, summary: `${decision.status} decision owned by ${decision.owner}. Create an accountable decision task, then edit its evidence and completion criteria in My Work.`, resolution: resolutionFor(decision.title, decision.owner, "To be scheduled", decision.status), action: "Create/update My Work task", onAction: () => signalTaskAction({ id: decision.id, type: "Decision", title: `Resolve decision: ${decision.title}`, owner: decision.owner, dueDate: "To be scheduled", stage: "Design", blocker: "Decision outcome is pending approval.", expectedOutcome: `Decision ${decision.title} is recorded with rationale and approver.` }, () => openModule("My Work")) })}>
+                    <button type="button" key={decision.id} className="list-item interactive-list-item" onClick={() => setDetail({ title: decision.title, summary: `${decision.status} decision owned by ${decision.owner}. Create an accountable decision task, then edit its evidence and completion criteria in My Work.`, resolution: resolutionFor(decision.title, decision.owner, "To be scheduled", decision.status), action: "Create/update My Work task", onAction: () => signalTaskAction({ id: decision.id, type: "Decision", title: `Resolve decision: ${decision.title}`, owner: decision.owner, dueDate: "To be scheduled", stage: "Design", blocker: "Decision outcome is pending approval.", expectedOutcome: `Decision ${decision.title} is recorded with rationale and approver.` }, () => openModule("My Work")), recordId: decision.id, recordType: "Decision" })}>
                       <strong>{decision.title}</strong>
                       <br />
                       <small>
@@ -1044,7 +1331,7 @@ function App() {
       </main>
       {settingsOpen && (
         <div className="settings-backdrop" role="presentation" onClick={() => setSettingsOpen(false)}>
-          <section className="settings-pane" role="dialog" aria-modal="true" aria-labelledby="settings-title" onClick={(event) => event.stopPropagation()}>
+          <section ref={settingsDialogRef as never} tabIndex={-1} className="settings-pane" role="dialog" aria-modal="true" aria-labelledby="settings-title" onClick={(event) => event.stopPropagation()}>
             <div className="settings-header">
               <div><div className="label">{labels.settings}</div><h2 id="settings-title">Demo user</h2></div>
               <button type="button" className="close-button" aria-label={labels.close} onClick={() => setSettingsOpen(false)}>×</button>
@@ -1315,6 +1602,7 @@ function StageDocumentationPanel({ engagement, workTasks, runtimeMode }: { engag
     }, selectedSections);
     setDocumentation(content);
     setCopyStatus("idle");
+    logReportGenerated("Stage report", `${stage} stage report for ${engagement.name} (${selectedSectionCount} of ${stageDocumentationSections.length} sections)`);
   };
 
   const copyToClipboard = async () => {
@@ -1384,6 +1672,7 @@ function StageDocumentationPanel({ engagement, workTasks, runtimeMode }: { engag
 function ProjectStatusReportPanel({ workTasks, runtimeMode }: { workTasks: WorkTask[]; runtimeMode: RuntimeMode }) {
   const [documentation, setDocumentation] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [pptStatus, setPptStatus] = useState<"idle" | "building" | "done">("idle");
 
   const generate = () => {
     const content = generateProjectStatusReport({
@@ -1403,6 +1692,7 @@ function ProjectStatusReportPanel({ workTasks, runtimeMode }: { workTasks: WorkT
     });
     setDocumentation(content);
     setCopyStatus("idle");
+    logReportGenerated("Project status report", `Whole-project report covering ${seed.engagements.length} engagement(s)`);
   };
 
   const copyToClipboard = async () => {
@@ -1413,6 +1703,13 @@ function ProjectStatusReportPanel({ workTasks, runtimeMode }: { workTasks: WorkT
     } catch {
       setCopyStatus("failed");
     }
+  };
+
+  const buildDeck = async () => {
+    setPptStatus("building");
+    await generateLeadershipDeck(workTasks);
+    logReportGenerated("Leadership PowerPoint deck", `Portfolio snapshot with ${seed.engagements.length} engagement(s), ${seed.risks.length} risk(s), ${seed.decisions.length} decision(s)`);
+    setPptStatus("done");
   };
 
   return (
@@ -1438,7 +1735,11 @@ function ProjectStatusReportPanel({ workTasks, runtimeMode }: { workTasks: WorkT
               <button className="secondary-button" type="button" onClick={() => downloadTextFile("project-status-report.txt", documentation, "text/plain")}>Download .txt</button>
             </>
           )}
+          <button className="secondary-button" type="button" onClick={buildDeck} disabled={pptStatus === "building"}>
+            {pptStatus === "building" ? "Building PowerPoint…" : "Download leadership PowerPoint (.pptx)"}
+          </button>
         </div>
+        {pptStatus === "done" && <p className="muted">Leadership deck downloaded — a real, editable .pptx built from the current portfolio, risks, decisions, and stage gates.</p>}
       </div>
       {documentation ? (
         <pre className="stage-doc-output">{documentation}</pre>
@@ -1708,12 +2009,23 @@ function MyWork() {
   const [tasks, setTasks] = useState<WorkTask[]>(() => getWorkTasks());
   const [stage, setStage] = useState("All stages");
   const [status, setStatus] = useState("All statuses");
+  const [owner, setOwner] = useState("All owners");
+  const [query, setQuery] = useState("");
+  const [overdueOnly, setOverdueOnly] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<WorkTask | null>(null);
   const [formError, setFormError] = useState("");
   const stages = ["All stages", ...Array.from(new Set(tasks.map((task) => task.stage)))];
   const statuses = ["All statuses", "Not started", "In progress", "Blocked", "Ready for review", "Complete"];
-  const visibleTasks = tasks.filter((task) => (stage === "All stages" || task.stage === stage) && (status === "All statuses" || task.status === status));
+  const owners = ["All owners", ...Array.from(new Set(tasks.map((task) => task.owner)))];
+  const overdueIds = new Set(getNotifications(tasks, [], []).filter((item) => item.kind === "Overdue" && item.recordType === "WorkTask").map((item) => item.recordId));
+  const visibleTasks = tasks.filter((task) =>
+    (stage === "All stages" || task.stage === stage) &&
+    (status === "All statuses" || task.status === status) &&
+    (owner === "All owners" || task.owner === owner) &&
+    (!overdueOnly || overdueIds.has(task.id)) &&
+    (!query.trim() || `${task.title} ${task.expectedOutcome} ${task.owner}`.toLowerCase().includes(query.trim().toLowerCase())),
+  );
   const blockedCount = tasks.filter((task) => task.status === "Blocked").length;
   const reviewCount = tasks.filter((task) => task.status === "Ready for review").length;
 
@@ -1783,6 +2095,18 @@ function MyWork() {
         <label className="view-control">
           <span className="sr-only">Filter by task status</span>
           <select value={status} onChange={(event) => setStatus(event.target.value)}>{statuses.map((item) => <option key={item}>{item}</option>)}</select>
+        </label>
+        <label className="view-control">
+          <span className="sr-only">Filter by owner</span>
+          <select value={owner} onChange={(event) => setOwner(event.target.value)}>{owners.map((item) => <option key={item}>{item}</option>)}</select>
+        </label>
+        <label className="filter-control">
+          <span className="sr-only">Search tasks</span>
+          <input type="search" value={query} placeholder="Search title, outcome, or owner" onChange={(event) => setQuery(event.target.value)} />
+        </label>
+        <label className="overdue-toggle">
+          <input type="checkbox" checked={overdueOnly} onChange={(event) => setOverdueOnly(event.target.checked)} />
+          <span>Overdue only{overdueIds.size > 0 ? ` (${overdueIds.size})` : ""}</span>
         </label>
         <span className="record-count">{visibleTasks.length} visible tasks</span>
       </div>
@@ -1892,6 +2216,8 @@ function Module({
             () => onOpenModule("My Work"),
           )
         : undefined,
+      recordId: record.id,
+      recordType: page,
     });
   }
 
@@ -2058,6 +2384,9 @@ function StageGatePanel() {
     (criterion) => criterion.mandatory && criterion.status !== "Green",
   );
   const recommendation = mandatoryFailures.length > 0 ? "No-go" : "Go with conditions";
+  const gateName = "Readiness & Assurance";
+  const [approvals, setApprovals] = useState<GateApproval[]>(() => getGateApprovals(gateName));
+  const [showApproval, setShowApproval] = useState(false);
 
   return (
     <div className="card stage-gate-card">
@@ -2092,6 +2421,88 @@ function StageGatePanel() {
         ))}
       </div>
       <p className="ai-note">AI and automation may identify gaps, but only an authorized human can approve this gate.</p>
+      <div className="detail-actions">
+        <button type="button" className="primary-button" onClick={() => setShowApproval(true)}>Record gate decision</button>
+      </div>
+      {approvals.length > 0 && (
+        <div className="gate-approval-history">
+          <span className="label">Approval history (evidence chain)</span>
+          <ul>
+            {approvals.map((approval) => (
+              <li key={approval.id}>
+                <Pill v={approval.decision === "Rejected" ? "Red" : approval.decision === "Approved" ? "Green" : "Amber"} /> <strong>{approval.decision}</strong> by {approval.approver} on {new Date(approval.occurredOn).toLocaleString()}
+                <div className="mini-meta">{approval.rationale}</div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {showApproval && (
+        <GateApprovalModal
+          gateName={gateName}
+          blocked={mandatoryFailures.length > 0}
+          onClose={() => setShowApproval(false)}
+          onRecorded={(approval) => { setApprovals((current) => [approval, ...current]); setShowApproval(false); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Captures a lightweight electronic signature (typed name, decision, and
+// rationale) for a stage-gate approval so the decision is attributable and
+// auditable, matching the existing local audit-trail pattern used elsewhere.
+function GateApprovalModal({
+  gateName,
+  blocked,
+  onClose,
+  onRecorded,
+}: {
+  gateName: string;
+  blocked: boolean;
+  onClose: () => void;
+  onRecorded: (approval: GateApproval) => void;
+}) {
+  const dialogRef = useDialogA11y(onClose);
+  const [decision, setDecision] = useState<GateApproval["decision"]>(blocked ? "Approved with conditions" : "Approved");
+  const [approver, setApprover] = useState("");
+  const [rationale, setRationale] = useState("");
+  const [error, setError] = useState("");
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!approver.trim() || !rationale.trim()) {
+      setError("Enter your name and a rationale to record this decision. This acts as the electronic signature for the gate.");
+      return;
+    }
+    const approval = recordGateApproval({ gateName, decision, approver, rationale });
+    onRecorded(approval);
+  }
+
+  return (
+    <div className="detail-backdrop" role="presentation" onClick={onClose}>
+      <section ref={dialogRef as never} tabIndex={-1} className="detail-modal gate-approval-modal" role="dialog" aria-modal="true" aria-labelledby="gate-approval-title" onClick={(event) => event.stopPropagation()}>
+        <div className="label accent">Gate decision · electronic signature</div>
+        <h2 id="gate-approval-title">Record decision for {gateName}</h2>
+        {blocked && <p className="gate-alert" role="alert">Mandatory criteria are not all Green. Only an authorized approver should proceed, and any conditions must be recorded in the rationale.</p>}
+        <form onSubmit={submit}>
+          {error && <p className="form-error" role="alert">{error}</p>}
+          <label><span className="label">Decision</span>
+            <select value={decision} onChange={(event) => setDecision(event.target.value as GateApproval["decision"])}>
+              <option>Approved</option>
+              <option>Approved with conditions</option>
+              <option>Rejected</option>
+            </select>
+          </label>
+          <label><span className="label">Approver name (typed signature)</span><input required value={approver} onChange={(event) => setApprover(event.target.value)} placeholder="Type your full name to sign" /></label>
+          <label><span className="label">Rationale</span><textarea required value={rationale} onChange={(event) => setRationale(event.target.value)} placeholder="Explain the basis for this decision, including any conditions." /></label>
+          <p className="muted">Signing records your typed name, the decision, rationale, and a timestamp to this browser's audit trail and evidence chain. This is a demo capture, not a cryptographic signature.</p>
+          <div className="detail-actions">
+            <button className="secondary-button" type="button" onClick={onClose}>Cancel</button>
+            <button className="primary-button" type="submit">Sign and record decision</button>
+          </div>
+        </form>
+      </section>
     </div>
   );
 }

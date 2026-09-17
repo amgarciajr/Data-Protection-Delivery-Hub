@@ -83,6 +83,40 @@ export type AuditEvent = {
   source: "synthetic" | "local";
 };
 
+export type TaskComment = {
+  id: string;
+  recordId: string;
+  recordType: string;
+  author: string;
+  body: string;
+  mentions: string[];
+  createdOn: string;
+};
+
+export type GateApproval = {
+  id: string;
+  gateName: string;
+  decision: "Approved" | "Approved with conditions" | "Rejected";
+  approver: string;
+  rationale: string;
+  occurredOn: string;
+  source: "local";
+};
+
+export type NotificationSeverity = "Red" | "Amber";
+export type NotificationKind = "Overdue" | "Due soon" | "Predictive" | "Decision";
+
+export type NotificationItem = {
+  id: string;
+  kind: NotificationKind;
+  severity: NotificationSeverity;
+  title: string;
+  message: string;
+  module: string;
+  recordId: string;
+  recordType: "WorkTask" | "Risk" | "Decision";
+};
+
 export type StageTemplate = {
   stage: string;
   purpose: string;
@@ -173,6 +207,9 @@ const storageKey = "dpdh-local-records-v1";
 const improvementStorageKey = "dpdh-practice-improvements-v1";
 const workTaskStorageKey = "dpdh-work-tasks-v1";
 const auditStorageKey = "dpdh-audit-events-v1";
+const commentStorageKey = "dpdh-comments-v1";
+const gateApprovalStorageKey = "dpdh-gate-approvals-v1";
+const notificationReadStorageKey = "dpdh-notifications-read-v1";
 
 const seedRecords: Record<string, HubRecord[]> = {
   "My Work": [
@@ -424,6 +461,12 @@ export function getAuditEvents() {
   return readAuditEvents();
 }
 
+// Writes an audit-trail entry when a report/document/deck is generated or
+// exported, so the evidence chain shows who produced which artifact and when.
+export function logReportGenerated(reportType: string, scope: string) {
+  writeAuditEvent({ id: `audit-${Date.now()}`, action: `${reportType} generated`, recordType: "Report", recordId: reportType.toLowerCase().replaceAll(/\s+/g, "-"), actor: "Demo user", rationale: scope, occurredOn: new Date().toISOString(), source: "local" });
+}
+
 export function getPracticeImprovements() {
   return readImprovements();
 }
@@ -438,7 +481,147 @@ export function addPracticeImprovement(input: Pick<PracticeImprovement, "title" 
   };
   const improvements = [...readImprovements(), next];
   if (typeof window !== "undefined") window.localStorage.setItem(improvementStorageKey, JSON.stringify(improvements));
+  writeAuditEvent({ id: `audit-${Date.now()}`, action: "Practice improvement logged", recordType: "PracticeImprovement", recordId: next.id, actor: next.owner || "Demo user", rationale: next.problem, occurredOn: new Date().toISOString(), source: "local" });
   return next;
+}
+
+function readComments(): TaskComment[] {
+  if (typeof window === "undefined") return [];
+  const stored = window.localStorage.getItem(commentStorageKey);
+  if (!stored) return [];
+  try { return JSON.parse(stored) as TaskComment[]; } catch { return []; }
+}
+
+function writeComments(comments: TaskComment[]) {
+  if (typeof window !== "undefined") window.localStorage.setItem(commentStorageKey, JSON.stringify(comments));
+}
+
+export function getComments(recordId: string): TaskComment[] {
+  return readComments().filter((comment) => comment.recordId === recordId).sort((a, b) => a.createdOn.localeCompare(b.createdOn));
+}
+
+export function addComment(recordId: string, recordType: string, author: string, body: string): TaskComment {
+  const mentions = Array.from(new Set((body.match(/@[A-Za-z][\w.-]*/g) ?? []).map((tag) => tag.slice(1))));
+  const comment: TaskComment = {
+    id: `comment-${Date.now()}`,
+    recordId,
+    recordType,
+    author: author.trim() || "Demo user",
+    body: body.trim(),
+    mentions,
+    createdOn: new Date().toISOString(),
+  };
+  writeComments([...readComments(), comment]);
+  writeAuditEvent({ id: `audit-${Date.now()}`, action: "Comment added", recordType, recordId, actor: comment.author, rationale: mentions.length ? `Mentioned ${mentions.map((name) => `@${name}`).join(", ")}` : "Comment logged for traceability", occurredOn: comment.createdOn, source: "local" });
+  return comment;
+}
+
+function readGateApprovals(): GateApproval[] {
+  if (typeof window === "undefined") return [];
+  const stored = window.localStorage.getItem(gateApprovalStorageKey);
+  if (!stored) return [];
+  try { return JSON.parse(stored) as GateApproval[]; } catch { return []; }
+}
+
+export function getGateApprovals(gateName?: string): GateApproval[] {
+  const all = readGateApprovals().sort((a, b) => b.occurredOn.localeCompare(a.occurredOn));
+  return gateName ? all.filter((approval) => approval.gateName === gateName) : all;
+}
+
+export function recordGateApproval(input: { gateName: string; decision: GateApproval["decision"]; approver: string; rationale: string }): GateApproval {
+  const approval: GateApproval = {
+    id: `gate-approval-${Date.now()}`,
+    gateName: input.gateName,
+    decision: input.decision,
+    approver: input.approver.trim(),
+    rationale: input.rationale.trim(),
+    occurredOn: new Date().toISOString(),
+    source: "local",
+  };
+  if (typeof window !== "undefined") window.localStorage.setItem(gateApprovalStorageKey, JSON.stringify([approval, ...readGateApprovals()].slice(0, 50)));
+  writeAuditEvent({ id: `audit-${Date.now()}`, action: `Gate ${input.decision.toLowerCase()}`, recordType: "StageGate", recordId: input.gateName, actor: approval.approver || "Authorized approver", rationale: approval.rationale || "No rationale captured", occurredOn: approval.occurredOn, source: "local" });
+  return approval;
+}
+
+function parseFlexibleDate(value: string): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function daysBetween(a: Date, b: Date): number {
+  return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+// Derives overdue/due-soon/predictive notification signals from the same in-memory
+// work tasks, risks, and decisions already loaded from local storage/seed data.
+// No live connector or scheduled email is used; this is a client-side computation
+// that runs whenever the caller renders the notification center.
+export function getNotifications(
+  workTasks: WorkTask[],
+  risks: EvidenceChainRisk[],
+  decisions: EvidenceChainDecision[],
+): NotificationItem[] {
+  const today = new Date();
+  const items: NotificationItem[] = [];
+
+  for (const task of workTasks) {
+    if (task.status === "Complete") continue;
+    const due = parseFlexibleDate(task.dueDate);
+    if (due) {
+      const delta = daysBetween(today, due);
+      if (delta < 0) {
+        items.push({ id: `notif-task-overdue-${task.id}`, kind: "Overdue", severity: "Red", title: `Overdue: ${task.title}`, message: `Owned by ${task.owner}, due ${task.dueDate} (${Math.abs(delta)} day(s) past due) in ${task.stage}.`, module: "My Work", recordId: task.id, recordType: "WorkTask" });
+      } else if (delta <= 3) {
+        items.push({ id: `notif-task-duesoon-${task.id}`, kind: "Due soon", severity: "Amber", title: `Due soon: ${task.title}`, message: `Owned by ${task.owner}, due ${task.dueDate} in ${task.stage}.`, module: "My Work", recordId: task.id, recordType: "WorkTask" });
+      }
+    }
+    if (task.status === "Blocked") {
+      items.push({ id: `notif-task-blocked-${task.id}`, kind: "Predictive", severity: "Amber", title: `Predictive risk: ${task.title} is blocked`, message: `A blocked task in ${task.stage} increases the likelihood the next stage gate slips. Blocker: ${task.blocker}.`, module: "My Work", recordId: task.id, recordType: "WorkTask" });
+    }
+  }
+
+  for (const risk of risks) {
+    const due = parseFlexibleDate(risk.due);
+    if (!due) continue;
+    const delta = daysBetween(today, due);
+    if (delta < 0) {
+      items.push({ id: `notif-risk-overdue-${risk.id}`, kind: "Overdue", severity: "Red", title: `Overdue risk: ${risk.title}`, message: `${risk.severity} priority, owned by ${risk.owner}, due ${risk.due}.`, module: "RAID & Decisions", recordId: risk.id, recordType: "Risk" });
+    } else if (delta <= 3) {
+      items.push({ id: `notif-risk-duesoon-${risk.id}`, kind: "Due soon", severity: "Amber", title: `Risk due soon: ${risk.title}`, message: `${risk.severity} priority, owned by ${risk.owner}, due ${risk.due}.`, module: "RAID & Decisions", recordId: risk.id, recordType: "Risk" });
+    }
+  }
+
+  for (const decision of decisions) {
+    if (decision.status === "Overdue") {
+      items.push({ id: `notif-decision-overdue-${decision.id}`, kind: "Decision", severity: "Red", title: `Overdue decision: ${decision.title}`, message: `Owned by ${decision.owner}. No decision has been recorded yet.`, module: "RAID & Decisions", recordId: decision.id, recordType: "Decision" });
+    } else if (decision.status === "Due soon") {
+      items.push({ id: `notif-decision-duesoon-${decision.id}`, kind: "Decision", severity: "Amber", title: `Decision due soon: ${decision.title}`, message: `Owned by ${decision.owner}. A decision is needed before the next gate.`, module: "RAID & Decisions", recordId: decision.id, recordType: "Decision" });
+    }
+  }
+
+  return items;
+}
+
+export function getReadNotificationIds(): string[] {
+  if (typeof window === "undefined") return [];
+  const stored = window.localStorage.getItem(notificationReadStorageKey);
+  if (!stored) return [];
+  try { return JSON.parse(stored) as string[]; } catch { return []; }
+}
+
+export function markNotificationRead(id: string) {
+  if (typeof window === "undefined") return;
+  const current = new Set(getReadNotificationIds());
+  current.add(id);
+  window.localStorage.setItem(notificationReadStorageKey, JSON.stringify(Array.from(current)));
+}
+
+export function markAllNotificationsRead(ids: string[]) {
+  if (typeof window === "undefined") return;
+  const current = new Set(getReadNotificationIds());
+  ids.forEach((id) => current.add(id));
+  window.localStorage.setItem(notificationReadStorageKey, JSON.stringify(Array.from(current)));
 }
 
 export function getRecords(moduleName: string, fallback: Array<Pick<HubRecord, "title" | "value">>): HubRecord[] {

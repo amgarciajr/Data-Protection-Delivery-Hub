@@ -753,6 +753,223 @@ button:focus-visible {
   line-height: 1.6;
 }
 
+.link-button {
+  background: none;
+  border: none;
+  color: #1c5fa8;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  text-decoration: underline;
+}
+
+.link-button:hover {
+  color: #ff5800;
+}
+
+.notification-center {
+  position: relative;
+}
+
+.notification-bell {
+  align-items: center;
+  background: #4c4c4c;
+  border: 1px solid #666666;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  position: relative;
+  width: 100%;
+}
+
+.notification-bell:hover {
+  border-color: #ff5800;
+}
+
+.notification-badge {
+  background: #d0342c;
+  border-radius: 999px;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: auto;
+  min-width: 18px;
+  padding: 1px 6px;
+  text-align: center;
+}
+
+.notification-panel {
+  background: var(--surface, #fff);
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  box-shadow: 0 18px 40px #0004;
+  left: 0;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 12px;
+  position: absolute;
+  top: calc(100% + 6px);
+  width: 320px;
+  z-index: 60;
+}
+
+.notification-panel-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.notification-note {
+  font-size: 11px;
+  margin: 0 0 8px;
+}
+
+.notification-empty {
+  color: #555;
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.notification-list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notification-list button {
+  align-items: flex-start;
+  background: #f4f4f4;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.notification-list button:hover {
+  border-color: #ff5800;
+}
+
+.notification-list li.read button {
+  opacity: 0.6;
+}
+
+.notification-list button span {
+  display: grid;
+  gap: 2px;
+}
+
+.notification-list button small {
+  color: #555;
+}
+
+.comment-thread {
+  border-top: 1px solid #e5e5e5;
+  margin-top: 16px;
+  padding-top: 16px;
+}
+
+.comment-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+}
+
+.comment-list li {
+  background: #f4f4f4;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.comment-list p {
+  margin: 4px 0 0;
+}
+
+.comment-meta {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.comment-meta small {
+  color: #777;
+}
+
+.mention {
+  color: #1c5fa8;
+}
+
+.comment-form {
+  display: grid;
+  gap: 8px;
+}
+
+.comment-form input,
+.comment-form textarea {
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+  font: inherit;
+  padding: 8px;
+}
+
+.comment-form textarea {
+  min-height: 70px;
+}
+
+.overdue-toggle {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.gate-approval-history {
+  border-top: 1px solid #e5e5e5;
+  margin-top: 16px;
+  padding-top: 16px;
+}
+
+.gate-approval-history ul {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.gate-approval-history li {
+  background: #f4f4f4;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.gate-approval-modal form {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.gate-approval-modal select,
+.gate-approval-modal input,
+.gate-approval-modal textarea {
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+  font: inherit;
+  padding: 8px;
+  width: 100%;
+}
+
 .resolution-plan {
   border-top: 1px solid #e5e5e5;
   margin-top: 16px;
@@ -2128,6 +2345,57 @@ button:focus-visible {
 .theme-dark .stage-chip {
   background: #5a2d20;
   color: #ffb39a;
+}
+
+.theme-dark .notification-panel {
+  background: #333333;
+  border-color: #666666;
+}
+
+.theme-dark .notification-empty,
+.theme-dark .notification-note {
+  color: #cccccc;
+}
+
+.theme-dark .notification-list button {
+  background: #4c4c4c;
+  border-color: #666666;
+}
+
+.theme-dark .notification-list button small {
+  color: #cccccc;
+}
+
+.theme-dark .comment-thread,
+.theme-dark .gate-approval-history {
+  border-color: #666666;
+}
+
+.theme-dark .comment-list li,
+.theme-dark .gate-approval-history li {
+  background: #4c4c4c;
+}
+
+.theme-dark .comment-meta small {
+  color: #cccccc;
+}
+
+.theme-dark .mention {
+  color: #6fb3ff;
+}
+
+.theme-dark .comment-form input,
+.theme-dark .comment-form textarea,
+.theme-dark .gate-approval-modal select,
+.theme-dark .gate-approval-modal input,
+.theme-dark .gate-approval-modal textarea {
+  background: #262626;
+  border-color: #666666;
+  color: white;
+}
+
+.theme-dark .link-button {
+  color: #6fb3ff;
 }
 
 .theme-dark .task-status select {
