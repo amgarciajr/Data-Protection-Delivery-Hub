@@ -710,6 +710,45 @@ button:focus-visible {
   line-height: 1.6;
 }
 
+.resolution-plan {
+  border-top: 1px solid #e5e5e5;
+  margin-top: 16px;
+  padding-top: 16px;
+}
+
+.resolution-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.resolution-grid > div {
+  background: #f7f7f7;
+  border-radius: 7px;
+  padding: 10px;
+}
+
+.resolution-grid p {
+  margin: 5px 0 0;
+}
+
+.resolution-steps {
+  margin-top: 14px;
+}
+
+.resolution-steps ol {
+  line-height: 1.5;
+  margin: 7px 0 0;
+  padding-left: 22px;
+}
+
+.resolution-outcome {
+  background: #fff7f1;
+  border-left: 3px solid #ff5800;
+  margin-top: 14px;
+  padding: 10px;
+}
+
 .detail-actions {
   display: flex;
   justify-content: flex-end;

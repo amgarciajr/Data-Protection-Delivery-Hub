@@ -27,7 +27,18 @@ type Zone = "Start" | "Deliver" | "Prove" | "Transition" | "Improve";
 type Role = "Consultant" | "Workstream Lead" | "Architect" | "Project Manager" | "Engagement Manager" | "Reviewer" | "Practice Leader" | "Platform Administrator";
 type Language = "English" | "Español";
 type DemoMode = "standard" | "walkthrough";
-type DetailTarget = { title: string; summary: string; action?: string; onAction?: () => void };
+type ResolutionPlan = {
+  severity?: string;
+  why: string;
+  evidence: string;
+  impact: string;
+  owner: string;
+  dueDate: string;
+  steps: string[];
+  resolvedWhen: string;
+};
+
+type DetailTarget = { title: string; summary: string; action?: string; onAction?: () => void; resolution?: ResolutionPlan };
 
 const zoneModules: Record<Zone, ModuleName[]> = {
   Start: ["Command Center", "My Work"],
@@ -305,6 +316,21 @@ function DetailModal({ detail, onClose }: { detail: DetailTarget; onClose: () =>
         <div className="label accent">Interactive detail</div>
         <h2 id="detail-title">{detail.title}</h2>
         <p>{detail.summary}</p>
+        {detail.resolution && (
+          <div className="resolution-plan">
+            <div className="resolution-grid">
+              <div><span className="label">Why categorized</span><strong>{detail.resolution.severity ?? "Signal"}</strong><p>{detail.resolution.why}</p></div>
+              <div><span className="label">Evidence observed</span><p>{detail.resolution.evidence}</p></div>
+              <div><span className="label">Impact if unresolved</span><p>{detail.resolution.impact}</p></div>
+              <div><span className="label">Accountable owner / due</span><p>{detail.resolution.owner} · {detail.resolution.dueDate}</p></div>
+            </div>
+            <div className="resolution-steps">
+              <span className="label">Resolution steps</span>
+              <ol>{detail.resolution.steps.map((step) => <li key={step}>{step}</li>)}</ol>
+            </div>
+            <div className="resolution-outcome"><strong>Resolved when:</strong> {detail.resolution.resolvedWhen}</div>
+          </div>
+        )}
         <div className="detail-actions">
           <button className="secondary-button" type="button" onClick={onClose}>Close</button>
           {detail.action && detail.onAction && <button className="primary-button" type="button" onClick={() => { detail.onAction?.(); onClose(); }}>{detail.action}</button>}
@@ -320,6 +346,32 @@ function signalTaskAction(
 ) {
   upsertWorkTaskFromSignal({ recordId: signal.id, recordType: signal.type, title: signal.title, owner: signal.owner, dueDate: signal.dueDate, stage: signal.stage, blocker: signal.blocker, expectedOutcome: signal.expectedOutcome });
   onOpenMyWork();
+}
+
+function resolutionFor(title: string, owner: string, dueDate: string, severity = "Action required"): ResolutionPlan {
+  const design = title.toLowerCase().includes("design") || title.toLowerCase().includes("exception");
+  return {
+    severity,
+    why: design
+      ? "The required approval or compensating control is missing or overdue."
+      : "Required delivery information or evidence is incomplete for the current lifecycle gate.",
+    evidence: design
+      ? "Decision rationale, exception record, compensating control, and expiry are not yet accepted."
+      : "The linked work item, authoritative evidence, or owner confirmation is not yet accepted.",
+    impact: "The engagement cannot safely advance this gate and the unresolved condition increases rework or handoff risk.",
+    owner,
+    dueDate,
+    steps: [
+      "Confirm the accountable owner and due date.",
+      "Open or update the linked My Work task with the expected outcome and definition of done.",
+      "Attach the authoritative evidence link and submit it for review.",
+      "Record the decision, approval, rationale, and any escalation.",
+      "Re-evaluate the gate after evidence is accepted and the blocker is cleared.",
+    ],
+    resolvedWhen: design
+      ? "an authorized approver accepts the rationale, compensating control, expiry, and evidence."
+      : "the owner completes the task, evidence is Accepted, required approval is recorded, and no blocker remains.",
+  };
 }
 
 function InfoTip({ text }: { text: string }) {
@@ -757,7 +809,7 @@ function App() {
                 <div className="card">
                   <h2>Priority risks</h2>
                   {seed.risks.map((risk) => (
-                    <button type="button" key={risk.id} className="list-item interactive-list-item" onClick={() => setDetail({ title: risk.title, summary: `${risk.severity} priority risk owned by ${risk.owner}, due ${risk.due}. Create an owned mitigation task, then edit its outcome and evidence in My Work.`, action: "Create/update My Work task", onAction: () => signalTaskAction({ id: risk.id, type: "Risk", title: `Mitigate risk: ${risk.title}`, owner: risk.owner, dueDate: risk.due, stage: "Assess", blocker: "Risk mitigation requires an owner decision.", expectedOutcome: `Mitigation plan for ${risk.title} is agreed and tracked.` }, () => openModule("My Work")) })}>
+                    <button type="button" key={risk.id} className="list-item interactive-list-item" onClick={() => setDetail({ title: risk.title, summary: `${risk.severity} priority risk owned by ${risk.owner}, due ${risk.due}. Create an owned mitigation task, then edit its outcome and evidence in My Work.`, resolution: resolutionFor(risk.title, risk.owner, risk.due, risk.severity), action: "Create/update My Work task", onAction: () => signalTaskAction({ id: risk.id, type: "Risk", title: `Mitigate risk: ${risk.title}`, owner: risk.owner, dueDate: risk.due, stage: "Assess", blocker: "Risk mitigation requires an owner decision.", expectedOutcome: `Mitigation plan for ${risk.title} is agreed and tracked.` }, () => openModule("My Work")) })}>
                       <Pill v={risk.severity} /> <strong>{risk.title}</strong>
                       <br />
                       <small>
@@ -770,7 +822,7 @@ function App() {
                 <div className="card">
                   <h2>Stage gate watchlist</h2>
                   {stageGates.map((gate) => (
-                    <button className="gate-row interactive-row" type="button" key={gate.name} onClick={() => setDetail({ title: gate.name, summary: `${gate.status} gate owned by ${gate.owner}. Review mandatory criteria, evidence, unresolved risks, and authorized approval before advancing the engagement.`, action: "Open Readiness & Assurance", onAction: () => openModule("Readiness & Assurance") })}>
+                    <button className="gate-row interactive-row" type="button" key={gate.name} onClick={() => setDetail({ title: gate.name, summary: `${gate.status} gate owned by ${gate.owner}. Review mandatory criteria, evidence, unresolved risks, and authorized approval before advancing the engagement.`, resolution: resolutionFor(gate.name, gate.owner, "Before gate review", gate.status), action: "Open Readiness & Assurance", onAction: () => openModule("Readiness & Assurance") })}>
                       <div>
                         <strong>{gate.name}</strong>
                         <div className="mini-meta">{gate.owner}</div>
@@ -783,7 +835,7 @@ function App() {
                 <div className="card">
                   <h2>Decisions</h2>
                   {seed.decisions.map((decision) => (
-                    <button type="button" key={decision.id} className="list-item interactive-list-item" onClick={() => setDetail({ title: decision.title, summary: `${decision.status} decision owned by ${decision.owner}. Create an accountable decision task, then edit its evidence and completion criteria in My Work.`, action: "Create/update My Work task", onAction: () => signalTaskAction({ id: decision.id, type: "Decision", title: `Resolve decision: ${decision.title}`, owner: decision.owner, dueDate: "To be scheduled", stage: "Design", blocker: "Decision outcome is pending approval.", expectedOutcome: `Decision ${decision.title} is recorded with rationale and approver.` }, () => openModule("My Work")) })}>
+                    <button type="button" key={decision.id} className="list-item interactive-list-item" onClick={() => setDetail({ title: decision.title, summary: `${decision.status} decision owned by ${decision.owner}. Create an accountable decision task, then edit its evidence and completion criteria in My Work.`, resolution: resolutionFor(decision.title, decision.owner, "To be scheduled", decision.status), action: "Create/update My Work task", onAction: () => signalTaskAction({ id: decision.id, type: "Decision", title: `Resolve decision: ${decision.title}`, owner: decision.owner, dueDate: "To be scheduled", stage: "Design", blocker: "Decision outcome is pending approval.", expectedOutcome: `Decision ${decision.title} is recorded with rationale and approver.` }, () => openModule("My Work")) })}>
                       <strong>{decision.title}</strong>
                       <br />
                       <small>
