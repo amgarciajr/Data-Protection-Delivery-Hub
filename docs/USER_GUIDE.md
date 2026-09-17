@@ -80,7 +80,7 @@ Use the stage template for the current engagement. Confirm required inputs, expe
 
 ### Building stage documentation
 
-In **Command Center**, the **Stage report builder** card lets you pick one of the four templated stages (Discover, Design, Validate, Transition), choose which sections to include by checkbox, and produce readable, ready-to-share documentation for the currently selected engagement.
+In **Command Center**, the **Stage report builder** card lets you pick any of the ten lifecycle stages (Qualify, Initiate, Discover, Assess, Design, Build, Validate, Transition, Close, Operate — each fully templated), choose which sections to include by checkbox, and produce readable, ready-to-share documentation for the currently selected engagement.
 
 Core sections are checked by default:
 
