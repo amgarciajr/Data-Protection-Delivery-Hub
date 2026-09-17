@@ -890,6 +890,7 @@ function App() {
 
             <ValueProposition role={role} onOpenModule={openModule} />
             <PresentationBrief onStartWalkthrough={startWalkthrough} onOpenMyWork={() => openModule("My Work")} />
+            <BusinessImpactPanel />
             <WorkflowOverview guided={guided} />
             <StageDocumentationPanel engagement={selectedEngagement} workTasks={workTasks} runtimeMode={runtimeMode} />
             <ProjectStatusReportPanel workTasks={workTasks} runtimeMode={runtimeMode} />
@@ -1117,6 +1118,35 @@ function ValueProposition({ role, onOpenModule }: { role: Role; onOpenModule: (p
         <strong>One operating view instead of seven disconnected tools</strong>
         <p>Teams, SharePoint, Planner, Outlook, OneNote, Power BI, and PowerPoint remain useful sources. The Hub connects their delivery signals to ownership, evidence, stage decisions, and outcomes.</p>
         <small>Source of truth: governed delivery records · Evidence: authoritative links · Intelligence: explainable signals</small>
+      </div>
+    </section>
+  );
+}
+
+const businessImpact: { outcome: string; how: string }[] = [
+  { outcome: "Reduce onboarding time", how: "New hires learn the engagement lifecycle from live, worked examples and a built-in guide instead of piecing it together from chat threads and tribal knowledge." },
+  { outcome: "Reduce rework", how: "Stage gates block advancement until evidence, ownership, and approval are satisfied — catching gaps before they become downstream defects." },
+  { outcome: "Reduce delivery risk", how: "Risks, blockers, and overdue decisions are visible with an owner and next action before the status meeting, not after." },
+  { outcome: "Improve consistency", how: "Every engagement runs the same stage templates, checklists, and definition of done instead of ten different personal approaches." },
+  { outcome: "Preserve institutional knowledge", how: "Decisions, evidence, and lessons are captured once as governed records and reusable assets, so knowledge survives staff turnover." },
+  { outcome: "Increase junior engineer capacity", how: "Clear checklists and explainable signals let less-experienced staff execute confidently, freeing senior experts for judgment calls." },
+  { outcome: "Improve customer outcomes", how: "Readiness and evidence are proven before handoff, reducing post-launch surprises and rebuilding trust in delivered work." },
+  { outcome: "Reduce status-reporting overhead", how: "Evidence is captured once at the source and reused across reviews, reports, and leadership updates instead of re-collected each time." },
+];
+
+function BusinessImpactPanel() {
+  return (
+    <section className="business-impact" aria-labelledby="business-impact-title">
+      <div className="label accent">Leadership alignment</div>
+      <h2 id="business-impact-title">The business problems this solves</h2>
+      <p>Framed for the decisions leadership actually needs to make — not another dashboard, a control plane for how delivery gets done.</p>
+      <div className="business-impact-grid">
+        {businessImpact.map((item) => (
+          <div key={item.outcome}>
+            <strong>{item.outcome}</strong>
+            <span>{item.how}</span>
+          </div>
+        ))}
       </div>
     </section>
   );

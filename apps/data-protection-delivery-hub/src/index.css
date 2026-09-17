@@ -920,6 +920,50 @@ button:focus-visible {
   margin-left: 8px;
 }
 
+.business-impact {
+  background: #ffffff;
+  border: 1px solid #d8dfe6;
+  border-left: 5px solid #2a5b78;
+  border-radius: 10px;
+  margin: 18px 0;
+  padding: 22px;
+}
+
+.business-impact h2 {
+  margin: 5px 0 8px;
+}
+
+.business-impact > p {
+  color: #444;
+  margin: 0 0 16px;
+  max-width: 760px;
+}
+
+.business-impact-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.business-impact-grid div {
+  background: #f7f9fb;
+  border: 1px solid #dbe4ec;
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  padding: 13px;
+}
+
+.business-impact-grid strong {
+  color: #163a52;
+}
+
+.business-impact-grid span {
+  color: #555;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .quality-trends {
   margin-top: 18px;
 }
@@ -2367,6 +2411,28 @@ button:focus-visible {
 .theme-dark .presentation-brief-grid div {
   background: #3b4249;
   border-color: #666666;
+}
+
+.theme-dark .business-impact {
+  background: #172536;
+  border-color: #2c4258;
+}
+
+.theme-dark .business-impact > p {
+  color: #dceaf2;
+}
+
+.theme-dark .business-impact-grid div {
+  background: #1c2c40;
+  border-color: #2c4258;
+}
+
+.theme-dark .business-impact-grid strong {
+  color: #9fd0f0;
+}
+
+.theme-dark .business-impact-grid span {
+  color: #c4d5e1;
 }
 
 .theme-dark .presentation-boundary {
