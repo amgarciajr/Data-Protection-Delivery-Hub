@@ -113,6 +113,24 @@ Acceptance criteria:
 
 **Evidence:** first-use screenshot, guided-mode preference result, tooltip keyboard result, and any usability findings.
 
+### 8. Evidence chain test
+
+**Objective:** confirm the requirement → evidence → review → linked task/decision → readiness/gate chain is visible, accurate, and actionable, and that missing/unaccepted evidence is obvious and links to the right workspace.
+
+Repeatable steps:
+
+1. Open **Command Center** and confirm the **Evidence chain** panel is visible, and open **Testing & Evidence** and confirm the same panel renders there.
+2. Confirm the panel's "X of Y need attention" count matches the number of chains whose overall status pill is not Green.
+3. Switch the view control to **Needs attention** and confirm only chains with at least one non-Green node remain, including any chain built from a risk or decision that has no linked My Work task (a "gap" chain, shown fully Red/Amber).
+4. For a chain built from a My Work task, click each of its five nodes in turn (required input, evidence item, review status, linked task/decision, readiness/gate impact) and confirm each opens a detail panel describing that node and, when the node is not Green, a next action.
+5. From a non-Green **evidence item** or **review status** node, select the next action and confirm it opens **My Work**.
+6. From a **readiness/gate impact** node, select the next action and confirm it opens **Readiness & Assurance**.
+7. From a gap chain's **linked task/decision** node, select **Create/update My Work task** and confirm it creates/updates a task and opens **My Work** with that task visible (the same signal-to-task pattern used by the Command Center risk/decision rows).
+8. Confirm every chain is computed from local demo data only (My Work tasks, RAID risks/decisions, stage gates) in both Demo and Live mode — no network request is made when the panel renders or a node is selected.
+9. Repeat steps 4–7 after creating or editing a My Work task in **My Work** and confirm the corresponding chain node updates to reflect the new evidence status/owner without a page reload.
+
+**Evidence:** dated screenshots of the panel in both locations, the needs-attention count before/after filtering, confirmation that each next action opens the correct module, and confirmation of no network call (browser network inspection) during chain rendering and node selection.
+
 ## Exit decision
 
 Phase 1 may be accepted as a prototype increment when:
@@ -124,6 +142,7 @@ Phase 1 may be accepted as a prototype increment when:
 - no live data or connector boundary is weakened;
 - accessibility and responsive findings are recorded;
 - Guided mode and tooltip behavior are understandable and keyboard accessible;
+- the evidence chain panel accurately reflects My Work/RAID/gate state and every non-Green node offers a working next action;
 - the evidence pack is linked to the release commit.
 
 Phase 1 must not be promoted to a production go-live decision. The next gate is a governed foundation validation covering Dataverse relationships, SharePoint evidence, server-side authorization, audit, approvals, and idempotent automation.
@@ -142,3 +161,4 @@ Store or link:
 8. Demo/Live indicator and Live-mode fail-closed evidence;
 9. evidence that Live never silently falls back to synthetic data.
 10. successful completion of the four-step leadership walkthrough from Command Center through My Work and Prove.
+11. evidence chain test result (panel visibility, needs-attention accuracy, node next actions, and no-network confirmation).

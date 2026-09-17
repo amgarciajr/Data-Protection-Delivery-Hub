@@ -88,6 +88,26 @@ In **Command Center**, the **Stage documentation generator** card lets you pick 
 
 Use **Generate documentation** to assemble the output from local data only, **Copy to clipboard** to paste it elsewhere, and **Download .md** / **Download .txt** to save a file. Everything is computed locally from the demo template, stage gates, My Work tasks, and the selected engagement — no live connector or network call is made, even when Live mode is selected, so the Demo/Live boundary is preserved.
 
+### Evidence chain
+
+The **Evidence chain** panel — visible on **Command Center** and on the **Testing & Evidence** module — makes the link between a required input, its evidence, the review outcome, the linked task or decision, and the resulting readiness/gate impact explicit and clickable.
+
+Each row is a chain of five nodes:
+
+1. **Required input** — the requirement/stage input the work is tied to.
+2. **Evidence item** — the evidence described on the linked My Work task.
+3. **Review status** — whether that evidence has been reviewed and accepted.
+4. **Linked task/decision** — the My Work task, or the RAID risk/decision record, backing the chain.
+5. **Readiness/gate impact** — the stage gate this chain feeds into (or “no gate tracked” when the stage has none configured).
+
+Each node is color-coded (Green/Amber/Red) and clickable:
+
+- Selecting a node opens its detail, including why it is Green/Amber/Red and what "done" looks like.
+- When a node is not Green, the detail includes a **next action** button — usually **Open My Work** (to fix the evidence, review, or task) or **Open Readiness & Assurance** (to review the gate). Chains that start from an unmitigated risk or an undecided decision with no linked task instead offer **Create/update My Work task**, which creates or updates the task and takes you straight to My Work — the same pattern used elsewhere in the Hub for turning a signal into owned work.
+- Use the **Needs attention** filter to show only chains with a Red/Amber node — this is the fastest way to see which required inputs still lack accepted evidence, and where a risk or decision has no evidence trail at all (a "gap" chain, shown fully Red/Amber).
+
+Chains are computed locally from the current demo's My Work tasks, RAID risks/decisions, and stage gate status — no live connector or network call is made in either Demo or Live mode, so the Demo/Live boundary is preserved.
+
 ## Evidence and deliverables
 
 Evidence remains **Submitted** until an authorized reviewer accepts it. Deliverables follow the configured review path and must not skip mandatory review states. Record the authoritative SharePoint link and metadata; do not duplicate sensitive content unnecessarily.

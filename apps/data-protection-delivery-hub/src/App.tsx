@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import seed from "./data/seed.json";
-import { addPracticeImprovement, addRecord, generateStageDocumentation, getAuditEvents, getConnectionReadiness, getPracticeImprovements, getRecords, getRuntimeConfig, getWorkTasks, metricHistory, qualityMetrics, repositoryConfig, reusableAssets, stageTemplates, updateWorkTask, updateWorkTaskStatus, upsertWorkTaskFromSignal, type HubRecord, type PracticeImprovement, type RuntimeMode, type WorkTask, type WorkTaskStatus } from "./data/repository";
+import { addPracticeImprovement, addRecord, evidenceChainNodeLabels, generateStageDocumentation, getAuditEvents, getConnectionReadiness, getEvidenceChains, getPracticeImprovements, getRecords, getRuntimeConfig, getWorkTasks, metricHistory, qualityMetrics, repositoryConfig, reusableAssets, stageTemplates, updateWorkTask, updateWorkTaskStatus, upsertWorkTaskFromSignal, type EvidenceChain, type EvidenceChainDecision, type EvidenceChainNode, type EvidenceChainRisk, type HubRecord, type PracticeImprovement, type RuntimeMode, type WorkTask, type WorkTaskStatus } from "./data/repository";
 import "./index.css";
 
 const nav = [
@@ -789,6 +789,7 @@ function App() {
 
             <PracticeImprovementPanel improvements={improvements} onAdded={(item) => setImprovements((current) => [...current, item])} />
             <QualityTrendPanel onSelect={(item) => setDetail(item)} />
+            <EvidenceChainPanel workTasks={workTasks} risks={seed.risks} decisions={seed.decisions} onSelect={(item) => setDetail(item)} onOpenModule={openModule} />
 
             <div className="section">
               <div className="card">
@@ -860,7 +861,7 @@ function App() {
         ) : page === "My Work" ? (
           <MyWork />
         ) : (
-          <Module page={page} />
+          <Module page={page} workTasks={workTasks} risks={seed.risks} decisions={seed.decisions} onSelect={setDetail} onOpenModule={openModule} />
         )}
       </main>
       {settingsOpen && (
@@ -1163,6 +1164,123 @@ function QualityTrendPanel({ onSelect }: { onSelect: (detail: DetailTarget) => v
   );
 }
 
+function EvidenceChainPanel({
+  workTasks,
+  risks,
+  decisions,
+  onSelect,
+  onOpenModule,
+}: {
+  workTasks: WorkTask[];
+  risks: EvidenceChainRisk[];
+  decisions: EvidenceChainDecision[];
+  onSelect: (detail: DetailTarget) => void;
+  onOpenModule: (page: ModuleName) => void;
+}) {
+  const [filter, setFilter] = useState<"all" | "attention">("all");
+  const chains = useMemo(() => getEvidenceChains(workTasks, stageGates, risks, decisions), [workTasks, risks, decisions]);
+  const visibleChains = filter === "attention" ? chains.filter((chain) => chain.overallStatus !== "Green") : chains;
+  const attentionCount = chains.filter((chain) => chain.overallStatus !== "Green").length;
+
+  function openNode(chain: EvidenceChain, node: EvidenceChainNode) {
+    const needsAttention = node.status !== "Green";
+    let action: string | undefined;
+    let onAction: (() => void) | undefined;
+
+    if (node.kind === "requirement") {
+      action = "Review stage documentation";
+      onAction = () => onOpenModule("Command Center");
+    } else if (node.kind === "gate") {
+      action = "Open Readiness & Assurance";
+      onAction = () => onOpenModule("Readiness & Assurance");
+    } else if ((node.kind === "evidence" || node.kind === "review") && needsAttention) {
+      action = "Open My Work";
+      onAction = () => onOpenModule("My Work");
+    } else if (node.kind === "link" && needsAttention) {
+      if (chain.sourceType === "Risk") {
+        const risk = risks.find((item) => item.id === chain.sourceId);
+        action = "Create/update My Work task";
+        onAction = () => {
+          if (risk) {
+            signalTaskAction({ id: risk.id, type: "Risk", title: `Mitigate risk: ${risk.title}`, owner: risk.owner, dueDate: risk.due, stage: "Assess", blocker: "Risk mitigation requires an owner decision.", expectedOutcome: `Mitigation plan for ${risk.title} is agreed and tracked.` }, () => onOpenModule("My Work"));
+          } else {
+            onOpenModule("My Work");
+          }
+        };
+      } else if (chain.sourceType === "Decision") {
+        const decision = decisions.find((item) => item.id === chain.sourceId);
+        action = "Create/update My Work task";
+        onAction = () => {
+          if (decision) {
+            signalTaskAction({ id: decision.id, type: "Decision", title: `Resolve decision: ${decision.title}`, owner: decision.owner, dueDate: "To be scheduled", stage: "Design", blocker: "Decision outcome is pending approval.", expectedOutcome: `Decision ${decision.title} is recorded with rationale and approver.` }, () => onOpenModule("My Work"));
+          } else {
+            onOpenModule("My Work");
+          }
+        };
+      } else {
+        action = "Open My Work";
+        onAction = () => onOpenModule("My Work");
+      }
+    }
+
+    onSelect({
+      title: `${chain.title} → ${node.label}`,
+      summary: node.detail,
+      resolution: needsAttention ? resolutionFor(node.label, chain.owner, "See linked record for the due date", node.status) : undefined,
+      action,
+      onAction,
+    });
+  }
+
+  return (
+    <section className="card evidence-chain-panel" aria-labelledby="evidence-chain-title">
+      <div className="records-heading">
+        <div>
+          <div className="label accent">Evidence chain</div>
+          <h2 id="evidence-chain-title">Trace requirement, evidence, review, and readiness impact</h2>
+          <p className="muted">Click any node for its detail and next action. Chains are assembled locally from My Work, RAID &amp; Decisions, and stage gate data — no live connector is used.</p>
+        </div>
+        <span className="record-count">{attentionCount} of {chains.length} need attention</span>
+      </div>
+      <div className="toolbar">
+        <label className="view-control">
+          <span className="sr-only">Evidence chain view</span>
+          <select value={filter} onChange={(event) => setFilter(event.target.value as "all" | "attention")}>
+            <option value="all">All chains</option>
+            <option value="attention">Needs attention</option>
+          </select>
+        </label>
+      </div>
+      <div className="evidence-chain-list">
+        {visibleChains.map((chain) => (
+          <div className={`evidence-chain-row${chain.overallStatus !== "Green" ? " attention" : ""}`} key={chain.id}>
+            <div className="evidence-chain-row-header">
+              <div>
+                <strong>{chain.title}</strong>
+                <small>{chain.stage} · {chain.owner} · {chain.sourceType}</small>
+              </div>
+              <Pill v={chain.overallStatus} />
+            </div>
+            <div className="evidence-chain-nodes">
+              {chain.nodes.flatMap((node, index) => {
+                const button = (
+                  <button type="button" key={`${chain.id}-${node.kind}`} className={`evidence-chain-node ${node.status}`} onClick={() => openNode(chain, node)}>
+                    <span className="evidence-chain-node-kind">{evidenceChainNodeLabels[node.kind]}</span>
+                    <span className="evidence-chain-node-label">{node.label}</span>
+                  </button>
+                );
+                if (index === chain.nodes.length - 1) return [button];
+                return [button, <span className="evidence-chain-arrow" aria-hidden="true" key={`${chain.id}-${node.kind}-arrow`}>→</span>];
+              })}
+            </div>
+          </div>
+        ))}
+        {visibleChains.length === 0 && <p className="empty-state">No chains match this view — every tracked chain is Green.</p>}
+      </div>
+    </section>
+  );
+}
+
 function MyWork() {
   const [tasks, setTasks] = useState<WorkTask[]>(() => getWorkTasks());
   const [stage, setStage] = useState("All stages");
@@ -1301,7 +1419,21 @@ function MyWork() {
   );
 }
 
-function Module({ page }: { page: ModuleName }) {
+function Module({
+  page,
+  workTasks,
+  risks,
+  decisions,
+  onSelect,
+  onOpenModule,
+}: {
+  page: ModuleName;
+  workTasks: WorkTask[];
+  risks: EvidenceChainRisk[];
+  decisions: EvidenceChainDecision[];
+  onSelect: (detail: DetailTarget) => void;
+  onOpenModule: (page: ModuleName) => void;
+}) {
   const detail = moduleDetailMap[page];
   const [filter, setFilter] = useState("");
   const [view, setView] = useState<"all" | "review">("all");
@@ -1453,17 +1585,9 @@ function Module({ page }: { page: ModuleName }) {
         </div>
       </div>
 
-      <div className="card trace-card">
-        <h2>Evidence chain</h2>
-        <div className="trace-row">
-          <span>Scope item</span>
-          <span>Requirement</span>
-          <span>Control</span>
-          <span>Test case</span>
-          <span>Evidence</span>
-          <span>Readiness</span>
-        </div>
-      </div>
+      {page === "Testing & Evidence" && (
+        <EvidenceChainPanel workTasks={workTasks} risks={risks} decisions={decisions} onSelect={onSelect} onOpenModule={onOpenModule} />
+      )}
     </>
   );
 }
