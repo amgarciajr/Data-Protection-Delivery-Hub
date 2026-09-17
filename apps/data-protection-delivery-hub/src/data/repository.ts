@@ -59,12 +59,17 @@ export type WorkTask = {
   stage: string;
   expectedOutcome: string;
   evidence: string;
+  evidenceLink: string;
+  evidenceStatus: "Not started" | "In progress" | "Submitted" | "Accepted" | "Rejected";
+  decisionApproval: string;
   owner: string;
   dueDate: string;
   status: WorkTaskStatus;
   blocker: string;
   definitionOfDone: string;
   source: "synthetic" | "local";
+  linkedRecordId?: string;
+  linkedRecordType?: "Risk" | "Decision";
 };
 
 export type AuditEvent = {
@@ -167,6 +172,9 @@ const defaultWorkTasks: WorkTask[] = [
     stage: "Discover",
     expectedOutcome: "All required source evidence is received and mapped to discovery questions.",
     evidence: "Evidence register links and review outcomes",
+    evidenceLink: "Evidence register pending customer links",
+    evidenceStatus: "In progress",
+    decisionApproval: "Workstream Lead review",
     owner: "Workstream Lead",
     dueDate: "18 Sep 2026",
     status: "In progress",
@@ -180,6 +188,9 @@ const defaultWorkTasks: WorkTask[] = [
     stage: "Design",
     expectedOutcome: "The selected design is approved with a documented compensating control.",
     evidence: "Architecture decision and exception record",
+    evidenceLink: "Decision log and exception record pending approval",
+    evidenceStatus: "In progress",
+    decisionApproval: "Authorized approver — pending",
     owner: "Architect",
     dueDate: "20 Sep 2026",
     status: "Blocked",
@@ -193,6 +204,9 @@ const defaultWorkTasks: WorkTask[] = [
     stage: "Transition",
     expectedOutcome: "Named operators can accept the handoff and support model.",
     evidence: "Runbook, training record, support route, and acceptance confirmation",
+    evidenceLink: "Transition readiness folder",
+    evidenceStatus: "Submitted",
+    decisionApproval: "Engagement Manager acceptance",
     owner: "Engagement Manager",
     dueDate: "25 Sep 2026",
     status: "Ready for review",
@@ -258,18 +272,27 @@ function readImprovements(): PracticeImprovement[] {
 }
 
 function readWorkTasks(): WorkTask[] {
+  const normalize = (tasks: WorkTask[]) => tasks.map((task) => ({
+    ...task,
+    evidenceLink: task.evidenceLink || "Evidence link to be added",
+    evidenceStatus: task.evidenceStatus || "Not started",
+    decisionApproval: task.decisionApproval || "Not applicable",
+  }));
   if (typeof window === "undefined") return defaultWorkTasks;
   const stored = window.localStorage.getItem(workTaskStorageKey);
   if (!stored) return defaultWorkTasks;
   try {
-    return JSON.parse(stored) as WorkTask[];
+    return normalize(JSON.parse(stored) as WorkTask[]);
   } catch {
     return defaultWorkTasks;
   }
 }
 
 function writeWorkTasks(tasks: WorkTask[]) {
-  if (typeof window !== "undefined") window.localStorage.setItem(workTaskStorageKey, JSON.stringify(tasks));
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(workTaskStorageKey, JSON.stringify(tasks));
+    window.dispatchEvent(new CustomEvent("dpdh-work-tasks-changed"));
+  }
 }
 
 function readAuditEvents(): AuditEvent[] {
@@ -293,6 +316,46 @@ export function updateWorkTaskStatus(id: string, status: WorkTaskStatus) {
   const updated = next.find((task) => task.id === id);
   if (updated) writeAuditEvent({ id: `audit-${Date.now()}`, action: "Task status changed", recordType: "WorkTask", recordId: id, actor: "Demo user", rationale: `Status changed to ${status}`, occurredOn: new Date().toISOString(), source: "local" });
   return updated;
+}
+
+export function updateWorkTask(id: string, changes: Partial<Omit<WorkTask, "id" | "source">>) {
+  const next = readWorkTasks().map((task) => task.id === id ? { ...task, ...changes, source: "local" as const } : task);
+  writeWorkTasks(next);
+  const updated = next.find((task) => task.id === id);
+  if (updated) writeAuditEvent({ id: `audit-${Date.now()}`, action: "Work task updated", recordType: "WorkTask", recordId: id, actor: "Demo user", rationale: "Task details edited in My Work", occurredOn: new Date().toISOString(), source: "local" });
+  return updated;
+}
+
+export function upsertWorkTaskFromSignal(input: {
+  recordId: string;
+  recordType: "Risk" | "Decision";
+  title: string;
+  owner: string;
+  dueDate: string;
+  stage: string;
+  blocker: string;
+  expectedOutcome: string;
+}) {
+  const tasks = readWorkTasks();
+  const existing = tasks.find((task) => task.linkedRecordId === input.recordId);
+  const task: WorkTask = existing
+    ? { ...existing, ...input, source: "local" }
+    : {
+      id: `task-${input.recordType.toLowerCase()}-${input.recordId}-${Date.now()}`,
+      ...input,
+      evidence: `${input.recordType} mitigation or decision record`,
+      evidenceLink: `${input.recordType} record link to be added`,
+      evidenceStatus: "Not started",
+      decisionApproval: input.recordType === "Decision" ? "Approver confirmation required" : "Not applicable",
+      status: "Not started",
+      definitionOfDone: "Owner records the outcome, supporting evidence, and any follow-up decision.",
+      source: "local",
+      linkedRecordId: input.recordId,
+      linkedRecordType: input.recordType,
+    };
+  writeWorkTasks(existing ? tasks.map((item) => item.id === existing.id ? task : item) : [...tasks, task]);
+  writeAuditEvent({ id: `audit-${Date.now()}`, action: existing ? "Signal task updated" : "Signal task created", recordType: input.recordType, recordId: input.recordId, actor: "Demo user", rationale: `${input.recordType} action linked to My Work`, occurredOn: new Date().toISOString(), source: "local" });
+  return task;
 }
 
 export function getAuditEvents() {

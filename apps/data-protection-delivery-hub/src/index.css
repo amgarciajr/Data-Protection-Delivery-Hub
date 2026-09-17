@@ -924,11 +924,80 @@ button:focus-visible {
   border-left-color: #c62828;
 }
 
+.work-signal-card {
+  margin: 18px 0;
+}
+
+.work-signal-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.work-signal-list .list-item {
+  border-top: 1px solid #e5e5e5;
+  display: grid;
+  gap: 4px;
+  padding: 10px 0;
+  text-align: left;
+}
+
+.work-signal-list small {
+  color: #666;
+}
+
 .work-task-header {
   align-items: flex-start;
   display: flex;
   gap: 18px;
   justify-content: space-between;
+}
+
+.task-edit-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.required-fields-note {
+  background: #fff7e8;
+  border-left: 3px solid #ffb314;
+  color: #704d00;
+  font-size: 12px;
+  margin: 0;
+  padding: 9px 11px;
+}
+
+.form-error {
+  color: #a32121;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.task-edit-form label {
+  color: #555;
+  display: grid;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.task-edit-form input,
+.task-edit-form textarea {
+  border: 1px solid #b3b3b3;
+  border-radius: 7px;
+  font: inherit;
+  padding: 9px;
+}
+
+.task-edit-form textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.task-edit-form .work-task-grid {
+  margin-top: 0;
 }
 
 .work-task-header h2 {

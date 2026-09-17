@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import seed from "./data/seed.json";
-import { addPracticeImprovement, addRecord, getAuditEvents, getConnectionReadiness, getPracticeImprovements, getRecords, getRuntimeConfig, getWorkTasks, metricHistory, qualityMetrics, repositoryConfig, reusableAssets, stageTemplates, updateWorkTaskStatus, type HubRecord, type PracticeImprovement, type RuntimeMode, type WorkTask, type WorkTaskStatus } from "./data/repository";
+import { addPracticeImprovement, addRecord, getAuditEvents, getConnectionReadiness, getPracticeImprovements, getRecords, getRuntimeConfig, getWorkTasks, metricHistory, qualityMetrics, repositoryConfig, reusableAssets, stageTemplates, updateWorkTask, updateWorkTaskStatus, upsertWorkTaskFromSignal, type HubRecord, type PracticeImprovement, type RuntimeMode, type WorkTask, type WorkTaskStatus } from "./data/repository";
 import "./index.css";
 
 const nav = [
@@ -314,6 +314,14 @@ function DetailModal({ detail, onClose }: { detail: DetailTarget; onClose: () =>
   );
 }
 
+function signalTaskAction(
+  signal: { id: string; type: "Risk" | "Decision"; title: string; owner: string; dueDate: string; stage: string; blocker: string; expectedOutcome: string },
+  onOpenMyWork: () => void,
+) {
+  upsertWorkTaskFromSignal({ recordId: signal.id, recordType: signal.type, title: signal.title, owner: signal.owner, dueDate: signal.dueDate, stage: signal.stage, blocker: signal.blocker, expectedOutcome: signal.expectedOutcome });
+  onOpenMyWork();
+}
+
 function InfoTip({ text }: { text: string }) {
   return <span className="info-tip" tabIndex={0} aria-label={text}>i<span role="tooltip">{text}</span></span>;
 }
@@ -476,6 +484,7 @@ function App() {
   const [demoMode, setDemoMode] = useState<DemoMode>(() => (window.localStorage.getItem("dpdh-demo-mode") as DemoMode) || "standard");
   const [walkthroughStep, setWalkthroughStep] = useState(0);
   const [detail, setDetail] = useState<DetailTarget | null>(null);
+  const [workTasks, setWorkTasks] = useState<WorkTask[]>(() => getWorkTasks());
   const connection = getConnectionReadiness();
   const runtime = getRuntimeConfig();
   const [improvements, setImprovements] = useState<PracticeImprovement[]>(() => getPracticeImprovements());
@@ -498,6 +507,11 @@ function App() {
   useEffect(() => { window.localStorage.setItem("dpdh-language", language); }, [language]);
   useEffect(() => { window.localStorage.setItem("dpdh-guided", guided ? "on" : "off"); }, [guided]);
   useEffect(() => { window.localStorage.setItem("dpdh-demo-mode", demoMode); }, [demoMode]);
+  useEffect(() => {
+    const refreshTasks = () => setWorkTasks(getWorkTasks());
+    window.addEventListener("dpdh-work-tasks-changed", refreshTasks);
+    return () => window.removeEventListener("dpdh-work-tasks-changed", refreshTasks);
+  }, []);
 
   function closeWelcome() {
     setShowWelcome(false);
@@ -662,6 +676,21 @@ function App() {
               ))}
             </div>
 
+            <div className="card work-signal-card">
+              <div className="records-heading">
+                <div><div className="label accent">Signal to action</div><h2>My Work queue</h2><p className="muted">Risk and decision actions stay linked to an owned, editable task.</p></div>
+                <button type="button" onClick={() => openModule("My Work")}>Open My Work</button>
+              </div>
+              <div className="work-signal-list">
+                {workTasks.slice(0, 4).map((task) => (
+                  <button type="button" className="list-item interactive-list-item" key={task.id} onClick={() => openModule("My Work")}>
+                    <strong>{task.title}</strong><small>{task.status} · {task.owner} · due {task.dueDate}</small>
+                  </button>
+                ))}
+                {workTasks.length === 0 && <p className="empty-state">No tasks yet. Use a risk or decision action to create one.</p>}
+              </div>
+            </div>
+
             <div className="card leadership-brief">
               <div className="records-heading">
                 <div>
@@ -728,7 +757,7 @@ function App() {
                 <div className="card">
                   <h2>Priority risks</h2>
                   {seed.risks.map((risk) => (
-                    <button type="button" key={risk.id} className="list-item interactive-list-item" onClick={() => setDetail({ title: risk.title, summary: `${risk.severity} priority risk owned by ${risk.owner}, due ${risk.due}. Open RAID & Decisions to record mitigation, dependencies, decisions, and escalation.` , action: "Open RAID & Decisions", onAction: () => openModule("RAID & Decisions") })}>
+                    <button type="button" key={risk.id} className="list-item interactive-list-item" onClick={() => setDetail({ title: risk.title, summary: `${risk.severity} priority risk owned by ${risk.owner}, due ${risk.due}. Create an owned mitigation task, then edit its outcome and evidence in My Work.`, action: "Create/update My Work task", onAction: () => signalTaskAction({ id: risk.id, type: "Risk", title: `Mitigate risk: ${risk.title}`, owner: risk.owner, dueDate: risk.due, stage: "Assess", blocker: "Risk mitigation requires an owner decision.", expectedOutcome: `Mitigation plan for ${risk.title} is agreed and tracked.` }, () => openModule("My Work")) })}>
                       <Pill v={risk.severity} /> <strong>{risk.title}</strong>
                       <br />
                       <small>
@@ -754,7 +783,7 @@ function App() {
                 <div className="card">
                   <h2>Decisions</h2>
                   {seed.decisions.map((decision) => (
-                    <button type="button" key={decision.id} className="list-item interactive-list-item" onClick={() => setDetail({ title: decision.title, summary: `${decision.status} decision owned by ${decision.owner}. Capture rationale, approver, due date, evidence, and any exception expiry in RAID & Decisions.`, action: "Open RAID & Decisions", onAction: () => openModule("RAID & Decisions") })}>
+                    <button type="button" key={decision.id} className="list-item interactive-list-item" onClick={() => setDetail({ title: decision.title, summary: `${decision.status} decision owned by ${decision.owner}. Create an accountable decision task, then edit its evidence and completion criteria in My Work.`, action: "Create/update My Work task", onAction: () => signalTaskAction({ id: decision.id, type: "Decision", title: `Resolve decision: ${decision.title}`, owner: decision.owner, dueDate: "To be scheduled", stage: "Design", blocker: "Decision outcome is pending approval.", expectedOutcome: `Decision ${decision.title} is recorded with rationale and approver.` }, () => openModule("My Work")) })}>
                       <strong>{decision.title}</strong>
                       <br />
                       <small>
@@ -994,6 +1023,9 @@ function MyWork() {
   const [tasks, setTasks] = useState<WorkTask[]>(() => getWorkTasks());
   const [stage, setStage] = useState("All stages");
   const [status, setStatus] = useState("All statuses");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<WorkTask | null>(null);
+  const [formError, setFormError] = useState("");
   const stages = ["All stages", ...Array.from(new Set(tasks.map((task) => task.stage)))];
   const statuses = ["All statuses", "Not started", "In progress", "Blocked", "Ready for review", "Complete"];
   const visibleTasks = tasks.filter((task) => (stage === "All stages" || task.stage === stage) && (status === "All statuses" || task.status === status));
@@ -1003,6 +1035,37 @@ function MyWork() {
   function changeStatus(id: string, nextStatus: WorkTaskStatus) {
     const updated = updateWorkTaskStatus(id, nextStatus);
     if (updated) setTasks((current) => current.map((task) => task.id === id ? updated : task));
+  }
+
+  function startEditing(task: WorkTask) {
+    setEditingId(task.id);
+    setDraft({ ...task });
+    setFormError("");
+  }
+
+  function saveTask(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!draft) return;
+    const requiredFields = [draft.title, draft.owner, draft.dueDate, draft.expectedOutcome, draft.evidence, draft.evidenceLink, draft.evidenceStatus, draft.decisionApproval, draft.blocker, draft.definitionOfDone];
+    if (requiredFields.some((value) => !value.trim())) {
+      setFormError("Complete every core delivery field before saving. Use “Not applicable” when a decision or approval does not apply.");
+      return;
+    }
+    const updated = updateWorkTask(draft.id, {
+      title: draft.title.trim(),
+      expectedOutcome: draft.expectedOutcome.trim(),
+      evidence: draft.evidence.trim(),
+      evidenceLink: draft.evidenceLink.trim(),
+      evidenceStatus: draft.evidenceStatus,
+      decisionApproval: draft.decisionApproval.trim(),
+      owner: draft.owner.trim(),
+      dueDate: draft.dueDate.trim(),
+      blocker: draft.blocker.trim() || "None",
+      definitionOfDone: draft.definitionOfDone.trim(),
+    });
+    if (updated) setTasks((current) => current.map((task) => task.id === updated.id ? updated : task));
+    setEditingId(null);
+    setDraft(null);
   }
 
   return (
@@ -1021,10 +1084,10 @@ function MyWork() {
       </div>
 
       <div className="my-work-principles">
-        <div><strong>Expected outcome</strong><span>What this task must produce</span></div>
-        <div><strong>Evidence</strong><span>How completion will be proven</span></div>
-        <div><strong>Definition of done</strong><span>What must be true before closure</span></div>
-        <div><strong>Decision rights</strong><span>Who reviews, approves, or escalates</span></div>
+        <div><strong>Owner + due date</strong><span>Every action has accountable ownership and a deadline.</span></div>
+        <div><strong>Outcome + evidence</strong><span>Required proof includes a link and review status.</span></div>
+        <div><strong>Decision / approval</strong><span>Record the approver or explicitly mark not applicable.</span></div>
+        <div><strong>Blocker + done</strong><span>Escalation and closure criteria are explicit.</span></div>
       </div>
 
       <div className="toolbar">
@@ -1053,17 +1116,39 @@ function MyWork() {
                   {statuses.slice(1).map((item) => <option key={item}>{item}</option>)}
                 </select>
               </label>
+              {editingId !== task.id && <button type="button" onClick={() => startEditing(task)}>Edit task</button>}
             </div>
-            <div className="work-task-grid">
-              <div><span className="label">Expected outcome</span><p>{task.expectedOutcome}</p></div>
-              <div><span className="label">Evidence required</span><p>{task.evidence}</p></div>
-              <div><span className="label">Owner and due date</span><p>{task.owner}<br /><strong>{task.dueDate}</strong></p></div>
-              <div><span className="label">Definition of done</span><p>{task.definitionOfDone}</p></div>
-            </div>
-            <div className={`task-blocker ${task.blocker === "None" ? "no-blocker" : ""}`}>
-              <strong>{task.blocker === "None" ? "No blocker" : "Blocker / escalation"}</strong>
-              <span>{task.blocker}</span>
-            </div>
+            {editingId === task.id && draft ? (
+              <form className="task-edit-form" onSubmit={saveTask}>
+                <p className="required-fields-note">Required: owner, due date, expected outcome, evidence required/link/status, decision or approval, blocker/escalation, and definition of done.</p>
+                {formError && <p className="form-error" role="alert">{formError}</p>}
+                <label>Task title<input required value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
+                <div className="work-task-grid">
+                  <label><span className="label">Expected outcome</span><textarea required value={draft.expectedOutcome} onChange={(event) => setDraft({ ...draft, expectedOutcome: event.target.value })} /></label>
+                  <label><span className="label">Evidence required</span><textarea required value={draft.evidence} onChange={(event) => setDraft({ ...draft, evidence: event.target.value })} /></label>
+                  <label><span className="label">Evidence link</span><input required value={draft.evidenceLink} onChange={(event) => setDraft({ ...draft, evidenceLink: event.target.value })} /><span className="label">Evidence status</span><select required value={draft.evidenceStatus} onChange={(event) => setDraft({ ...draft, evidenceStatus: event.target.value as WorkTask["evidenceStatus"] })}><option>Not started</option><option>In progress</option><option>Submitted</option><option>Accepted</option><option>Rejected</option></select></label>
+                  <label><span className="label">Owner</span><input required value={draft.owner} onChange={(event) => setDraft({ ...draft, owner: event.target.value })} /><span className="label">Due date</span><input required value={draft.dueDate} onChange={(event) => setDraft({ ...draft, dueDate: event.target.value })} /></label>
+                  <label><span className="label">Definition of done</span><textarea required value={draft.definitionOfDone} onChange={(event) => setDraft({ ...draft, definitionOfDone: event.target.value })} /></label>
+                </div>
+                <label><span className="label">Decision / approval</span><input required value={draft.decisionApproval} onChange={(event) => setDraft({ ...draft, decisionApproval: event.target.value })} /></label>
+                <label><span className="label">Blocker / escalation</span><textarea required value={draft.blocker} onChange={(event) => setDraft({ ...draft, blocker: event.target.value })} /></label>
+                <div className="detail-actions"><button type="button" className="secondary-button" onClick={() => { setEditingId(null); setDraft(null); }}>Cancel</button><button type="submit" className="primary-button">Save task</button></div>
+              </form>
+            ) : (
+              <>
+                <div className="work-task-grid">
+                  <div><span className="label">Expected outcome</span><p>{task.expectedOutcome}</p></div>
+                  <div><span className="label">Evidence required / link / status</span><p>{task.evidence}<br /><strong>{task.evidenceLink}</strong><br /><Pill v={task.evidenceStatus} /></p></div>
+                  <div><span className="label">Owner and due date</span><p>{task.owner}<br /><strong>{task.dueDate}</strong></p></div>
+                  <div><span className="label">Decision / approval</span><p>{task.decisionApproval}</p></div>
+                  <div><span className="label">Definition of done</span><p>{task.definitionOfDone}</p></div>
+                </div>
+                <div className={`task-blocker ${task.blocker === "None" ? "no-blocker" : ""}`}>
+                  <strong>{task.blocker === "None" ? "No blocker" : "Blocker / escalation"}</strong>
+                  <span>{task.blocker}</span>
+                </div>
+              </>
+            )}
           </article>
         ))}
         {visibleTasks.length === 0 && <div className="card empty-state">No tasks match the selected filters.</div>}
