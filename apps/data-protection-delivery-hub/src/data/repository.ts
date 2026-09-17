@@ -110,8 +110,39 @@ export type StageDocumentationContext = {
   engagementEvidence: number;
   workTasks: WorkTask[];
   stageGates: StageGateSummary[];
+  risks?: EvidenceChainRisk[];
+  decisions?: EvidenceChainDecision[];
+  portfolio?: StageDocumentationPortfolioItem[];
   runtimeMode: RuntimeMode;
   generatedAt?: Date;
+};
+
+export const stageDocumentationSections = [
+  { id: "purpose", label: "Purpose" },
+  { id: "requiredInputs", label: "Required inputs" },
+  { id: "expectedOutputs", label: "Expected outputs" },
+  { id: "decisionRights", label: "Decision rights" },
+  { id: "exitCriteria", label: "Exit criteria" },
+  { id: "knownGaps", label: "Known gaps" },
+  { id: "evidenceToGather", label: "Evidence to gather" },
+  { id: "ownersAndDueDates", label: "Owners and due dates" },
+  { id: "nextActions", label: "Next actions" },
+  { id: "linkedRisksDecisions", label: "Linked risks and decisions", optional: true },
+  { id: "evidenceChainSummary", label: "Evidence chain summary", optional: true },
+  { id: "engagementPortfolioSnapshot", label: "Engagement portfolio snapshot", optional: true },
+] as const satisfies ReadonlyArray<{ id: string; label: string; optional?: boolean }>;
+
+export type StageDocumentationSectionId = (typeof stageDocumentationSections)[number]["id"];
+export type StageDocumentationSectionSelection = Record<StageDocumentationSectionId, boolean>;
+
+export type StageDocumentationPortfolioItem = {
+  name: string;
+  stage: string;
+  health: string;
+  progress: number;
+  readiness: number;
+  evidence: number;
+  selected?: boolean;
 };
 
 export type ReusableAsset = {
@@ -125,15 +156,17 @@ export type ReusableAsset = {
   source: "synthetic" | "local";
 };
 
+const appEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
+
 export const repositoryConfig: RepositoryConfig = {
-  mode: import.meta.env.VITE_HUB_MODE === "live" ? "dataverse" : "local",
-  runtimeMode: import.meta.env.VITE_HUB_MODE === "live" ? "live" : "demo",
-  liveAdapterConfigured: import.meta.env.VITE_LIVE_ADAPTER_CONFIGURED === "true",
-  dataverseUrl: import.meta.env.VITE_DATAVERSE_URL ?? "",
+  mode: appEnv?.VITE_HUB_MODE === "live" ? "dataverse" : "local",
+  runtimeMode: appEnv?.VITE_HUB_MODE === "live" ? "live" : "demo",
+  liveAdapterConfigured: appEnv?.VITE_LIVE_ADAPTER_CONFIGURED === "true",
+  dataverseUrl: appEnv?.VITE_DATAVERSE_URL ?? "",
   solutionName: "DataProtectionDeliveryHub",
-  publisherPrefix: import.meta.env.VITE_PUBLISHER_PREFIX ?? "dpdh",
-  sharePointSiteUrl: import.meta.env.VITE_SHAREPOINT_SITE_URL ?? "",
-  sharePointEvidenceLibrary: import.meta.env.VITE_SHAREPOINT_EVIDENCE_LIBRARY ?? "",
+  publisherPrefix: appEnv?.VITE_PUBLISHER_PREFIX ?? "dpdh",
+  sharePointSiteUrl: appEnv?.VITE_SHAREPOINT_SITE_URL ?? "",
+  sharePointEvidenceLibrary: appEnv?.VITE_SHAREPOINT_EVIDENCE_LIBRARY ?? "",
 };
 
 const storageKey = "dpdh-local-records-v1";
@@ -466,12 +499,16 @@ function findStageGate(stage: string, gates: StageGateSummary[]): StageGateSumma
 // Assembles readable stage documentation entirely from local/synthetic data (stage templates,
 // My Work tasks, stage gates, and the selected engagement). No live connector calls are made,
 // so this keeps the Demo/Live boundary intact regardless of the active runtime mode.
-export function generateStageDocumentation(context: StageDocumentationContext): string {
+export function generateStageDocumentation(
+  context: StageDocumentationContext,
+  selectedSections: StageDocumentationSectionSelection,
+): string {
   const template = stageTemplates.find((item) => item.stage === context.stage);
   const generatedAt = context.generatedAt ?? new Date();
   const stageTasks = context.workTasks.filter((task) => task.stage === context.stage);
   const gate = findStageGate(context.stage, context.stageGates);
   const engagementOnStage = context.engagementStage === context.stage;
+  const enabled = (sectionId: StageDocumentationSectionId) => selectedSections[sectionId];
 
   const gaps: string[] = [];
   if (stageTasks.length === 0) {
@@ -529,6 +566,52 @@ export function generateStageDocumentation(context: StageDocumentationContext): 
   if (stageTasks.length === 0) nextActions.push(`Create a My Work task for the ${context.stage} stage to track evidence, ownership, and definition of done.`);
   if (template) nextActions.push(`Confirm exit criteria before advancing the gate: ${template.exitCriteria}.`);
 
+  const linkedItems: string[] = [];
+  if (context.risks || context.decisions) {
+    const linkedRiskIds = new Set(
+      stageTasks
+        .filter((task) => task.linkedRecordType === "Risk" && task.linkedRecordId)
+        .map((task) => task.linkedRecordId as string),
+    );
+    const linkedDecisionIds = new Set(
+      stageTasks
+        .filter((task) => task.linkedRecordType === "Decision" && task.linkedRecordId)
+        .map((task) => task.linkedRecordId as string),
+    );
+    for (const risk of context.risks ?? []) {
+      if (linkedRiskIds.has(risk.id)) linkedItems.push(`Risk: ${risk.title} (${risk.severity}, owner: ${risk.owner}, due ${risk.due}).`);
+    }
+    for (const decision of context.decisions ?? []) {
+      if (linkedDecisionIds.has(decision.id)) linkedItems.push(`Decision: ${decision.title} (${decision.status}, owner: ${decision.owner}).`);
+    }
+  }
+  if (linkedItems.length === 0) linkedItems.push(`No risks or decisions are currently linked to ${context.stage} stage tasks.`);
+
+  const stageChains = context.risks && context.decisions
+    ? getEvidenceChains(context.workTasks, context.stageGates, context.risks, context.decisions)
+      .filter((chain) => chain.sourceType === "WorkTask" && stageTasks.some((task) => task.id === chain.sourceId))
+    : [];
+  const evidenceChainSummary: string[] = [];
+  if (stageChains.length === 0) {
+    evidenceChainSummary.push(`No stage-specific evidence chains are available for ${context.stage} yet.`);
+  } else {
+    const green = stageChains.filter((chain) => chain.overallStatus === "Green").length;
+    const amber = stageChains.filter((chain) => chain.overallStatus === "Amber").length;
+    const red = stageChains.filter((chain) => chain.overallStatus === "Red").length;
+    evidenceChainSummary.push(`Tracked chains: ${stageChains.length} total (${green} Green, ${amber} Amber, ${red} Red).`);
+    for (const chain of stageChains.filter((item) => item.overallStatus !== "Green")) {
+      const attentionNodes = chain.nodes
+        .filter((node) => node.status !== "Green")
+        .map((node) => `${evidenceChainNodeLabels[node.kind]} — ${node.label}`)
+        .join("; ");
+      evidenceChainSummary.push(`${chain.title}: ${attentionNodes}.`);
+    }
+  }
+
+  const portfolioSnapshot = context.portfolio?.length
+    ? context.portfolio.map((engagement) => `${engagement.selected ? "* " : "- "}${engagement.name} — ${engagement.stage} · ${engagement.health} health · ${engagement.progress}% progress · ${engagement.readiness}% readiness · ${engagement.evidence}% evidence`)
+    : [`Portfolio snapshot is not available in the current context.`];
+
   const lines: string[] = [];
   lines.push(`# ${context.stage} stage documentation`);
   lines.push("");
@@ -536,33 +619,24 @@ export function generateStageDocumentation(context: StageDocumentationContext): 
   lines.push(`**Runtime mode:** ${context.runtimeMode === "live" ? "Live" : "Demo"} — generated locally from ${context.runtimeMode === "live" ? "connected" : "synthetic/local"} data only`);
   lines.push(`**Generated:** ${generatedAt.toLocaleString()}`);
   lines.push("");
-  lines.push("## Purpose");
-  lines.push(template ? template.purpose : `No stage template is defined for "${context.stage}" in this demo data set.`);
-  lines.push("");
-  lines.push("## Required inputs");
-  lines.push(...(template ? template.requiredInputs.map((item) => `- ${item}`) : ["- Not defined for this stage in the current demo template."]));
-  lines.push("");
-  lines.push("## Expected outputs");
-  lines.push(...(template ? template.expectedOutputs.map((item) => `- ${item}`) : ["- Not defined for this stage in the current demo template."]));
-  lines.push("");
-  lines.push("## Decision rights");
-  lines.push(template ? template.decisionRights : "Not defined for this stage in the current demo template.");
-  lines.push("");
-  lines.push("## Exit criteria");
-  lines.push(template ? template.exitCriteria : "Not defined for this stage in the current demo template.");
-  lines.push("");
-  lines.push("## Known gaps (from current demo data)");
-  lines.push(...gaps.map((item) => `- ${item}`));
-  lines.push("");
-  lines.push("## Evidence to gather");
-  lines.push(...evidence.map((item) => `- ${item}`));
-  lines.push("");
-  lines.push("## Owners and due dates");
-  lines.push(...owners.map((item) => `- ${item}`));
-  lines.push("");
-  lines.push("## Next actions");
-  lines.push(...nextActions.map((item) => `- ${item}`));
-  lines.push("");
+  const addSection = (title: string, content: string[]) => {
+    if (content.length === 0) return;
+    lines.push(`## ${title}`);
+    lines.push(...content);
+    lines.push("");
+  };
+  if (enabled("purpose")) addSection("Purpose", [template ? template.purpose : `No stage template is defined for "${context.stage}" in this demo data set.`]);
+  if (enabled("requiredInputs")) addSection("Required inputs", template ? template.requiredInputs.map((item) => `- ${item}`) : ["- Not defined for this stage in the current demo template."]);
+  if (enabled("expectedOutputs")) addSection("Expected outputs", template ? template.expectedOutputs.map((item) => `- ${item}`) : ["- Not defined for this stage in the current demo template."]);
+  if (enabled("decisionRights")) addSection("Decision rights", [template ? template.decisionRights : "Not defined for this stage in the current demo template."]);
+  if (enabled("exitCriteria")) addSection("Exit criteria", [template ? template.exitCriteria : "Not defined for this stage in the current demo template."]);
+  if (enabled("knownGaps")) addSection("Known gaps (from current demo data)", gaps.map((item) => `- ${item}`));
+  if (enabled("evidenceToGather")) addSection("Evidence to gather", evidence.map((item) => `- ${item}`));
+  if (enabled("ownersAndDueDates")) addSection("Owners and due dates", owners.map((item) => `- ${item}`));
+  if (enabled("nextActions")) addSection("Next actions", nextActions.map((item) => `- ${item}`));
+  if (enabled("linkedRisksDecisions")) addSection("Linked risks and decisions", linkedItems.map((item) => `- ${item}`));
+  if (enabled("evidenceChainSummary")) addSection("Evidence chain summary", evidenceChainSummary.map((item) => `- ${item}`));
+  if (enabled("engagementPortfolioSnapshot")) addSection("Engagement portfolio snapshot", portfolioSnapshot);
   lines.push("---");
   lines.push("Generated by the Data Protection Delivery Hub demo from local/synthetic data. It is not a substitute for governed delivery records or authorized approvals.");
   return lines.join("\n");

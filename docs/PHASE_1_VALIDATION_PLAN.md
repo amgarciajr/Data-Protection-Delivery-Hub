@@ -131,6 +131,22 @@ Repeatable steps:
 
 **Evidence:** dated screenshots of the panel in both locations, the needs-attention count before/after filtering, confirmation that each next action opens the correct module, and confirmation of no network call (browser network inspection) during chain rendering and node selection.
 
+### 9. Stage report builder test
+
+**Objective:** confirm the former stage documentation generator now produces only the content sections selected by the user, while preserving local-only generation, copy, and download behavior.
+
+Repeatable steps:
+
+1. Open **Command Center** and locate the **Stage report builder** card.
+2. Confirm all section checkboxes are selected by default.
+3. Generate a report for a templated stage and confirm the output includes the checked core sections.
+4. Clear at least two core sections (for example **Purpose** and **Known gaps**) and generate again; confirm those headings and their body text are absent from the output, while still-selected sections remain.
+5. Enable one optional section (for example **Evidence chain summary**) and confirm new content appears in the generated output, not just a visual checkbox state.
+6. Use **Copy to clipboard**, **Download .md**, and **Download .txt** after filtering and confirm each artifact contains the same filtered content shown onscreen.
+7. Repeat the test in Demo mode and verify no network request is made during generation, copy, or download. In Live mode, confirm the existing fail-closed boundary remains intact.
+
+**Evidence:** before/after generated output samples, screenshot or recording of checkbox changes, copied/downloaded artifact checks, and confirmation that the Demo/Live boundary is unchanged.
+
 ## Exit decision
 
 Phase 1 may be accepted as a prototype increment when:
@@ -143,6 +159,7 @@ Phase 1 may be accepted as a prototype increment when:
 - accessibility and responsive findings are recorded;
 - Guided mode and tooltip behavior are understandable and keyboard accessible;
 - the evidence chain panel accurately reflects My Work/RAID/gate state and every non-Green node offers a working next action;
+- the stage report builder includes only the selected sections, and copy/download preserve that filtered content;
 - the evidence pack is linked to the release commit.
 
 Phase 1 must not be promoted to a production go-live decision. The next gate is a governed foundation validation covering Dataverse relationships, SharePoint evidence, server-side authorization, audit, approvals, and idempotent automation.
@@ -162,3 +179,4 @@ Store or link:
 9. evidence that Live never silently falls back to synthetic data.
 10. successful completion of the four-step leadership walkthrough from Command Center through My Work and Prove.
 11. evidence chain test result (panel visibility, needs-attention accuracy, node next actions, and no-network confirmation).
+12. stage report builder test result (checkbox defaults, filtered content proof, copy/download parity, and boundary confirmation).

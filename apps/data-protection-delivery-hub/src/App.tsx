@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import seed from "./data/seed.json";
-import { addPracticeImprovement, addRecord, evidenceChainNodeLabels, generateStageDocumentation, getAuditEvents, getConnectionReadiness, getEvidenceChains, getPracticeImprovements, getRecords, getRuntimeConfig, getWorkTasks, metricHistory, qualityMetrics, repositoryConfig, reusableAssets, stageTemplates, updateWorkTask, updateWorkTaskStatus, upsertWorkTaskFromSignal, type EvidenceChain, type EvidenceChainDecision, type EvidenceChainNode, type EvidenceChainRisk, type HubRecord, type PracticeImprovement, type RuntimeMode, type WorkTask, type WorkTaskStatus } from "./data/repository";
+import { addPracticeImprovement, addRecord, evidenceChainNodeLabels, generateStageDocumentation, getAuditEvents, getConnectionReadiness, getEvidenceChains, getPracticeImprovements, getRecords, getRuntimeConfig, getWorkTasks, metricHistory, qualityMetrics, repositoryConfig, reusableAssets, stageDocumentationSections, stageTemplates, updateWorkTask, updateWorkTaskStatus, upsertWorkTaskFromSignal, type EvidenceChain, type EvidenceChainDecision, type EvidenceChainNode, type EvidenceChainRisk, type HubRecord, type PracticeImprovement, type RuntimeMode, type StageDocumentationSectionId, type StageDocumentationSectionSelection, type WorkTask, type WorkTaskStatus } from "./data/repository";
 import "./index.css";
 
 const nav = [
@@ -1044,11 +1044,23 @@ type StageDocEngagement = {
   evidence: number;
 };
 
+const defaultStageDocumentationSections = stageDocumentationSections.reduce((selection, section) => {
+  selection[section.id] = true;
+  return selection;
+}, {} as StageDocumentationSectionSelection);
+
 function StageDocumentationPanel({ engagement, workTasks, runtimeMode }: { engagement: StageDocEngagement | undefined; workTasks: WorkTask[]; runtimeMode: RuntimeMode }) {
   const stages = stageTemplates.map((template) => template.stage);
   const [stage, setStage] = useState(stages[0] ?? "");
   const [documentation, setDocumentation] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [selectedSections, setSelectedSections] = useState<StageDocumentationSectionSelection>(defaultStageDocumentationSections);
+  const selectedSectionCount = stageDocumentationSections.filter((section) => selectedSections[section.id]).length;
+
+  const toggleSection = (sectionId: StageDocumentationSectionId) => {
+    setSelectedSections((current) => ({ ...current, [sectionId]: !current[sectionId] }));
+    setDocumentation(null);
+  };
 
   const generate = () => {
     if (!engagement) return;
@@ -1063,8 +1075,19 @@ function StageDocumentationPanel({ engagement, workTasks, runtimeMode }: { engag
       engagementEvidence: engagement.evidence,
       workTasks,
       stageGates,
+      risks: seed.risks,
+      decisions: seed.decisions,
+      portfolio: seed.engagements.map((item) => ({
+        name: item.name,
+        stage: item.stage,
+        health: item.health,
+        progress: item.progress,
+        readiness: item.readiness,
+        evidence: item.evidence,
+        selected: item.name === engagement.name,
+      })),
       runtimeMode,
-    });
+    }, selectedSections);
     setDocumentation(content);
     setCopyStatus("idle");
   };
@@ -1085,32 +1108,48 @@ function StageDocumentationPanel({ engagement, workTasks, runtimeMode }: { engag
     <section className="card stage-documentation" aria-labelledby="stage-doc-title">
       <div className="records-heading">
         <div>
-          <div className="label accent">Stage documentation generator</div>
-          <h2 id="stage-doc-title">Generate readable documentation for a lifecycle stage</h2>
-          <p className="muted">Assembled locally from the stage template, My Work tasks, stage gates, and the selected engagement. Demo mode only uses synthetic/local data.</p>
+          <div className="label accent">Stage report builder</div>
+          <h2 id="stage-doc-title">Build a filtered lifecycle-stage report</h2>
+          <p className="muted">Assembled locally from the stage template, My Work tasks, stage gates, the selected engagement, and optional in-memory summaries. Demo mode only uses synthetic/local data.</p>
         </div>
-        <span className="record-count">{stages.length} stage templates</span>
+        <span className="record-count">{selectedSectionCount} of {stageDocumentationSections.length} sections selected</span>
       </div>
-      <div className="toolbar">
-        <label className="sr-only" htmlFor="stage-doc-select">Lifecycle stage</label>
-        <select id="stage-doc-select" value={stage} onChange={(event) => { setStage(event.target.value); setDocumentation(null); }}>
-          {stages.map((item) => <option key={item} value={item}>{item}</option>)}
-        </select>
-        <button className="primary-button" type="button" onClick={generate} disabled={!engagement}>Generate documentation</button>
-        {documentation && (
-          <>
-            <button className="secondary-button" type="button" onClick={copyToClipboard}>
-              {copyStatus === "copied" ? "Copied!" : copyStatus === "failed" ? "Copy failed — select and copy manually" : "Copy to clipboard"}
-            </button>
-            <button className="secondary-button" type="button" onClick={() => downloadTextFile(`${fileBase}.md`, documentation, "text/markdown")}>Download .md</button>
-            <button className="secondary-button" type="button" onClick={() => downloadTextFile(`${fileBase}.txt`, documentation, "text/plain")}>Download .txt</button>
-          </>
-        )}
+      <div className="stage-doc-controls">
+        <div className="toolbar">
+          <label className="sr-only" htmlFor="stage-doc-select">Lifecycle stage</label>
+          <select id="stage-doc-select" value={stage} onChange={(event) => { setStage(event.target.value); setDocumentation(null); }}>
+            {stages.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          <button className="primary-button" type="button" onClick={generate} disabled={!engagement}>Generate report</button>
+          {documentation && (
+            <>
+              <button className="secondary-button" type="button" onClick={copyToClipboard}>
+                {copyStatus === "copied" ? "Copied!" : copyStatus === "failed" ? "Copy failed — select and copy manually" : "Copy to clipboard"}
+              </button>
+              <button className="secondary-button" type="button" onClick={() => downloadTextFile(`${fileBase}.md`, documentation, "text/markdown")}>Download .md</button>
+              <button className="secondary-button" type="button" onClick={() => downloadTextFile(`${fileBase}.txt`, documentation, "text/plain")}>Download .txt</button>
+            </>
+          )}
+        </div>
+        <fieldset className="stage-doc-section-picker">
+          <legend>Choose sections to include</legend>
+          <div className="stage-doc-section-list">
+            {stageDocumentationSections.map((section) => (
+              <label className="stage-doc-checkbox" key={section.id}>
+                <input type="checkbox" checked={selectedSections[section.id]} onChange={() => toggleSection(section.id)} />
+                <span>
+                  <strong>{section.label}</strong>
+                  {"optional" in section ? <small>Optional summary section</small> : <small>Core stage-documentation content</small>}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
       </div>
       {documentation ? (
         <pre className="stage-doc-output">{documentation}</pre>
       ) : (
-        <p className="empty-state">Select a stage and choose Generate documentation to produce purpose, inputs, outputs, decision rights, exit criteria, known gaps, evidence, owners, and next actions.</p>
+        <p className="empty-state">Select a stage, choose the report sections to include, and then generate the output. The selected checkboxes control which content blocks actually appear in the report.</p>
       )}
     </section>
   );

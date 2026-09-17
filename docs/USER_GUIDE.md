@@ -43,7 +43,7 @@ Use Command Center for leadership and delivery reviews:
 - **Engagement portfolio:** review stage, health, and progress.
 - **Priority risks:** identify items needing action or escalation.
 - **Stage gate watchlist:** identify gates that are blocked or conditional.
-- **Stage documentation generator:** turn the stage template, My Work tasks, stage gates, and the selected engagement into readable stage documentation.
+- **Stage report builder:** turn the stage template, My Work tasks, stage gates, and the selected engagement into readable stage documentation, with section-level inclusion checkboxes.
 
 Metrics in the current demonstration are synthetic. Treat them as a presentation model until production metric lineage is configured.
 
@@ -78,15 +78,23 @@ Do not mark work complete merely because a file exists. The evidence must be aut
 
 Use the stage template for the current engagement. Confirm required inputs, expected outputs, decision rights, and exit criteria before progressing. A stage gate cannot be treated as Green when a mandatory criterion is unresolved.
 
-### Generating stage documentation
+### Building stage documentation
 
-In **Command Center**, the **Stage documentation generator** card lets you pick one of the four templated stages (Discover, Design, Validate, Transition) for the currently selected engagement and produce readable, ready-to-share documentation covering:
+In **Command Center**, the **Stage report builder** card lets you pick one of the four templated stages (Discover, Design, Validate, Transition), choose which sections to include by checkbox, and produce readable, ready-to-share documentation for the currently selected engagement.
+
+Core sections are checked by default:
 
 - Purpose, required inputs, expected outputs, decision rights, and exit criteria (from the stage template)
 - Known gaps derived from current demo data (missing/blocked tasks, unaccepted evidence, stage gate status, and — for the engagement's current stage — low readiness/evidence coverage or non-Green health)
 - Evidence to gather, owners and due dates, and suggested next actions
 
-Use **Generate documentation** to assemble the output from local data only, **Copy to clipboard** to paste it elsewhere, and **Download .md** / **Download .txt** to save a file. Everything is computed locally from the demo template, stage gates, My Work tasks, and the selected engagement — no live connector or network call is made, even when Live mode is selected, so the Demo/Live boundary is preserved.
+Optional sections may also be included when useful:
+
+- Linked risks and decisions already tied to stage tasks
+- Evidence chain summary for the selected stage
+- Engagement portfolio snapshot
+
+Use **Generate report** to assemble only the checked sections from local data, **Copy to clipboard** to paste it elsewhere, and **Download .md** / **Download .txt** to save a file. Changing the checkbox selection changes the generated content itself, not just the labels shown in the card. Everything is computed locally from the demo template, stage gates, My Work tasks, and the selected engagement — no live connector or network call is made, even when Live mode is selected, so the Demo/Live boundary is preserved.
 
 ### Evidence chain
 

@@ -1316,6 +1316,54 @@ button:focus-visible {
   cursor: pointer;
 }
 
+.stage-doc-controls {
+  display: grid;
+  gap: 12px;
+}
+
+.stage-doc-section-picker {
+  background: #f7f9fb;
+  border: 1px solid #d8e1e8;
+  border-radius: 10px;
+  margin: 0;
+  padding: 12px 14px 14px;
+}
+
+.stage-doc-section-picker legend {
+  color: #34516b;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+.stage-doc-section-list {
+  display: grid;
+  gap: 10px 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.stage-doc-checkbox {
+  align-items: flex-start;
+  color: #34516b;
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+}
+
+.stage-doc-checkbox input {
+  accent-color: #ff5800;
+  margin-top: 3px;
+}
+
+.stage-doc-checkbox span {
+  display: grid;
+  gap: 2px;
+}
+
+.stage-doc-checkbox small {
+  color: #666666;
+}
+
 .record-form {
   margin-top: 18px;
 }
@@ -1922,6 +1970,20 @@ button:focus-visible {
   background: #172536;
   border-color: #2c4258;
   color: #e6edf5;
+}
+
+.theme-dark .stage-doc-section-picker {
+  background: #101c2b;
+  border-color: #2c4258;
+}
+
+.theme-dark .stage-doc-section-picker legend,
+.theme-dark .stage-doc-checkbox {
+  color: #e6edf5;
+}
+
+.theme-dark .stage-doc-checkbox small {
+  color: #a9bdcf;
 }
 
 .theme-dark .stage-doc-output {
