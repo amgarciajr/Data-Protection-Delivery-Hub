@@ -98,6 +98,17 @@ The engagement selector, search, role preferences, and locally created records a
 
 The header shows the active environment mode. **Demo mode** is the safe working mode and uses synthetic/local data. **Live mode** is a guarded implementation path: in this prototype it stops at a clear handoff screen because no approved live adapter is connected. Do not interpret the toggle as authentication, authorization, or proof of production readiness.
 
+## Leadership walkthrough
+
+For a first-time user or leadership presentation, select **Settings → Demo experience → Leadership walkthrough**, or select **Start leadership walkthrough** on Command Center. The walkthrough explains the story in four steps:
+
+1. Command Center: understand the portfolio and readiness conversation.
+2. Lifecycle: select an orange `i` beside a stage to open a readable stage explanation.
+3. My Work: connect signals to owners, evidence, definitions of done, and escalation.
+4. Prove and improve: review evidence, transition readiness, and reusable practice improvements.
+
+Use **Next** to move through the story, **Exit walkthrough** to return to the normal dashboard, and the orange lifecycle `i` button to inspect any stage at any time. The dashboard is intentionally seeded with synthetic records so the leadership experience can be demonstrated without client data.
+
 ## What to do when something is wrong
 
 Do not work around a control by copying data to an unapproved location or changing a record outside the Hub. Capture the engagement, record, action, time, error text, and business impact, then follow `SUPPORT_RUNBOOK.md`.

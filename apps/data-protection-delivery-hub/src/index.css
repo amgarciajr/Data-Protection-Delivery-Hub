@@ -343,6 +343,85 @@ button:focus-visible {
   width: 100%;
 }
 
+.walkthrough-card {
+  max-width: 700px;
+}
+
+.walkthrough-progress {
+  display: flex;
+  gap: 7px;
+  margin: 22px 0;
+}
+
+.walkthrough-progress span {
+  background: #d7d7d7;
+  border-radius: 999px;
+  height: 6px;
+  flex: 1;
+}
+
+.walkthrough-progress span.active {
+  background: #ff5800;
+}
+
+.walkthrough-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hero-demo-button {
+  background: #fff;
+  border: 0;
+  border-radius: 7px;
+  color: #a93600;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 12px;
+  padding: 8px 10px;
+}
+
+.lifecycle-help-button {
+  align-items: center;
+  background: #ffb314;
+  border: 0;
+  border-radius: 50%;
+  color: #333;
+  cursor: help;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 800;
+  height: 16px;
+  justify-content: center;
+  margin-left: 5px;
+  padding: 0;
+  vertical-align: middle;
+  width: 16px;
+}
+
+.lifecycle-help-button:focus-visible {
+  outline: 3px solid #ffb314;
+  outline-offset: 2px;
+}
+
+.lifecycle-detail {
+  align-items: end;
+  background: #fff4ed;
+  border-left: 4px solid #ff5800;
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  grid-template-columns: 150px 1fr auto;
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.lifecycle-detail > div {
+  display: grid;
+  gap: 3px;
+}
+
 .guided-kicker {
   color: #dc4600;
   font-size: 12px;
@@ -1444,6 +1523,10 @@ button:focus-visible {
   color: #e6edf5;
 }
 
+.theme-dark .lifecycle-detail {
+  background: #3b2f1c;
+}
+
 .theme-dark .runtime-demo,
 .theme-dark .runtime-live {
   background: #3b2f1c;
@@ -1606,6 +1689,7 @@ button:focus-visible {
   .work-task-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .practice-metric { border-right: 0; border-bottom: 1px solid #e5e5e5; padding: 0 0 10px; }
   .practice-action { align-items: flex-start; flex-direction: column;   }
+  .lifecycle-detail { align-items: start; grid-template-columns: 1fr; }
 
   @media (max-width: 560px) {
     .leadership-grid { grid-template-columns: 1fr; }

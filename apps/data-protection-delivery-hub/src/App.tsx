@@ -26,6 +26,7 @@ type ModuleName = (typeof nav)[number];
 type Zone = "Start" | "Deliver" | "Prove" | "Transition" | "Improve";
 type Role = "Consultant" | "Workstream Lead" | "Architect" | "Project Manager" | "Engagement Manager" | "Reviewer" | "Practice Leader" | "Platform Administrator";
 type Language = "English" | "Español";
+type DemoMode = "standard" | "walkthrough";
 
 const zoneModules: Record<Zone, ModuleName[]> = {
   Start: ["Command Center", "My Work"],
@@ -318,6 +319,37 @@ function GuidedWelcome({ onClose }: { onClose: () => void }) {
   );
 }
 
+const walkthroughSteps = [
+  { title: "Start with Command Center", body: "This is the leadership view. It brings engagement health, risks, decisions, evidence completeness, and release readiness into one conversation.", page: "Command Center" as ModuleName },
+  { title: "Follow the lifecycle", body: "The lifecycle shows what each stage must produce before the team advances. Select a stage's orange i to read its expected output.", page: "Command Center" as ModuleName },
+  { title: "Move from signal to action", body: "My Work turns the signals into owned tasks with evidence, definitions of done, due dates, and escalation paths.", page: "My Work" as ModuleName },
+  { title: "Prove and improve", body: "Use the Prove, Transition, and Improve zones to review evidence, prepare handoff, and turn lessons into reusable practice improvements.", page: "Testing & Evidence" as ModuleName },
+];
+
+function DemoWalkthrough({ step, onNext, onClose, onNavigate }: { step: number; onNext: () => void; onClose: () => void; onNavigate: (page: ModuleName) => void }) {
+  const current = walkthroughSteps[step];
+  return (
+    <div className="guided-backdrop" role="presentation">
+      <section className="guided-card walkthrough-card" role="dialog" aria-modal="true" aria-labelledby="walkthrough-title">
+        <div className="guided-kicker">Leadership demo · {step + 1} of {walkthroughSteps.length}</div>
+        <h2 id="walkthrough-title">{current.title}</h2>
+        <p>{current.body}</p>
+        <div className="walkthrough-progress" aria-label={`Demo step ${step + 1} of ${walkthroughSteps.length}`}>
+          {walkthroughSteps.map((item, index) => <span key={item.title} className={index === step ? "active" : ""} />)}
+        </div>
+        <div className="walkthrough-actions">
+          <button className="secondary-button" type="button" onClick={onClose}>Exit walkthrough</button>
+          {step < walkthroughSteps.length - 1 ? (
+            <button className="primary-button" type="button" onClick={() => { onNavigate(walkthroughSteps[step + 1].page); onNext(); }}>Next</button>
+          ) : (
+            <button className="primary-button" type="button" onClick={onClose}>Finish demo</button>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function PracticeImprovementPanel({ improvements, onAdded }: { improvements: PracticeImprovement[]; onAdded: (item: PracticeImprovement) => void }) {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
@@ -424,6 +456,8 @@ function App() {
   const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>(repositoryConfig.runtimeMode);
   const [guided, setGuided] = useState(() => window.localStorage.getItem("dpdh-guided") !== "off");
   const [showWelcome, setShowWelcome] = useState(() => window.localStorage.getItem("dpdh-guided-seen") !== "yes");
+  const [demoMode, setDemoMode] = useState<DemoMode>(() => (window.localStorage.getItem("dpdh-demo-mode") as DemoMode) || "standard");
+  const [walkthroughStep, setWalkthroughStep] = useState(0);
   const connection = getConnectionReadiness();
   const runtime = getRuntimeConfig();
   const [improvements, setImprovements] = useState<PracticeImprovement[]>(() => getPracticeImprovements());
@@ -445,6 +479,7 @@ function App() {
   useEffect(() => { window.localStorage.setItem("dpdh-role", role); }, [role]);
   useEffect(() => { window.localStorage.setItem("dpdh-language", language); }, [language]);
   useEffect(() => { window.localStorage.setItem("dpdh-guided", guided ? "on" : "off"); }, [guided]);
+  useEffect(() => { window.localStorage.setItem("dpdh-demo-mode", demoMode); }, [demoMode]);
 
   function closeWelcome() {
     setShowWelcome(false);
@@ -468,6 +503,12 @@ function App() {
     if (nextZone) setZone(nextZone);
     setPage(nextPage);
     setSearch("");
+  }
+
+  function startWalkthrough() {
+    setDemoMode("walkthrough");
+    setWalkthroughStep(0);
+    setSettingsOpen(false);
   }
 
   const metrics = useMemo(
@@ -576,6 +617,7 @@ function App() {
                 <small>{connection.mode === "local" ? "Synthetic + local browser persistence" : "Synthetic data only"}</small>
                 <br />
                 <small>{selectedEngagement?.stage} · {selectedEngagement?.health} health</small>
+                <button className="hero-demo-button" type="button" onClick={startWalkthrough}>Start leadership walkthrough</button>
               </div>
             </div>
 
@@ -730,6 +772,18 @@ function App() {
               <span><strong>Guided mode</strong><small>Show onboarding cues and helpful explanations.</small></span>
             </label>
             <label className="settings-field">
+              Demo experience
+              <select value={demoMode} onChange={(event) => {
+                const nextMode = event.target.value as DemoMode;
+                setDemoMode(nextMode);
+                if (nextMode === "walkthrough") startWalkthrough();
+              }}>
+                <option value="standard">Standard dashboard</option>
+                <option value="walkthrough">Leadership walkthrough</option>
+              </select>
+              <small>Walkthrough mode explains the story and moves through the main views.</small>
+            </label>
+            <label className="settings-field">
               Environment mode
               <select value={runtimeMode} onChange={(event) => setRuntimeMode(event.target.value as RuntimeMode)}>
                 <option value="demo">Demo — synthetic/local data</option>
@@ -748,6 +802,7 @@ function App() {
         </div>
       )}
       {showWelcome && guided && <GuidedWelcome onClose={closeWelcome} />}
+      {demoMode === "walkthrough" && <DemoWalkthrough step={walkthroughStep} onNext={() => setWalkthroughStep((current) => current + 1)} onClose={() => setDemoMode("standard")} onNavigate={openModule} />}
     </div>
   );
 }
@@ -789,6 +844,8 @@ function LiveModeGate({ onReturnToDemo }: { onReturnToDemo: () => void }) {
 }
 
 function WorkflowOverview({ guided }: { guided: boolean }) {
+  const [selectedStage, setSelectedStage] = useState<number | null>(null);
+  const selected = selectedStage === null ? null : lifecycleStages[selectedStage];
   return (
     <section className="card workflow-overview" aria-labelledby="workflow-title">
       <div className="records-heading">
@@ -803,11 +860,18 @@ function WorkflowOverview({ guided }: { guided: boolean }) {
         {lifecycleStages.map((item, index) => (
           <div className="lifecycle-step" key={item.stage}>
             <span className="lifecycle-number">{index + 1}</span>
-            <strong>{item.stage} {guided && <InfoTip text={`Expected output: ${item.output}`} />}</strong>
+            <strong>{item.stage} {guided && <button className="lifecycle-help-button" type="button" aria-label={`Explain ${item.stage} stage`} title={`Expected output: ${item.output}`} onClick={() => setSelectedStage(index)}>i</button>}</strong>
             <small>{item.output}</small>
           </div>
         ))}
       </div>
+      {selected && (
+        <div className="lifecycle-detail" role="status">
+          <div><span className="label accent">Selected stage</span><strong>{selected.stage}</strong></div>
+          <div><span className="label">Expected output</span><span>{selected.output}</span></div>
+          <button className="secondary-button" type="button" onClick={() => setSelectedStage(null)}>Close stage explanation</button>
+        </div>
+      )}
       <div className="workflow-footer">
         <span><strong>Readiness:</strong> evidence, tests, ownership, support, and mandatory criteria</span>
         <span><strong>Decision:</strong> authorized human approval with rationale and audit</span>
