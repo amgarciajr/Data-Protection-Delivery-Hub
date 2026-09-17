@@ -352,6 +352,25 @@ function signalTaskAction(
   onOpenMyWork();
 }
 
+function recordResolution(record: HubRecord, moduleName: string): ResolutionPlan {
+  if (record.status === "Green") {
+    return {
+      severity: "On track",
+      why: `${record.title} in ${moduleName} has current ownership and an accepted, up-to-date review.`,
+      evidence: `Last reviewed ${record.lastReviewed} by ${record.owner}; current value ${record.value}.`,
+      impact: "No action is required right now; the record only needs routine monitoring to stay current.",
+      owner: record.owner,
+      dueDate: "Next scheduled review",
+      steps: [
+        "Confirm the value and owner are still accurate at the next review cadence.",
+        "Re-review before the next stage gate or milestone that depends on this record.",
+      ],
+      resolvedWhen: "already resolved — keep monitoring at the standard review cadence so it does not slip to Amber or Red.",
+    };
+  }
+  return resolutionFor(record.title, record.owner, "Next scheduled review", record.status === "Red" ? "Blocked" : "Needs attention");
+}
+
 function resolutionFor(title: string, owner: string, dueDate: string, severity = "Action required"): ResolutionPlan {
   const design = title.toLowerCase().includes("design") || title.toLowerCase().includes("exception");
   return {
@@ -1491,6 +1510,31 @@ function Module({
     return matchesView && matchesFilter;
   });
 
+  function openRecordDetail(record: HubRecord) {
+    const needsAttention = record.status !== "Green";
+    onSelect({
+      title: record.title,
+      summary: `${record.status} record owned by ${record.owner} in ${page}. Current value ${record.value}, last reviewed ${record.lastReviewed}.`,
+      resolution: recordResolution(record, page),
+      action: needsAttention ? "Create/update My Work task" : undefined,
+      onAction: needsAttention
+        ? () => signalTaskAction(
+            {
+              id: record.id,
+              type: "Risk",
+              title: `Resolve: ${record.title}`,
+              owner: record.owner,
+              dueDate: "To be scheduled",
+              stage: page,
+              blocker: `${record.title} is ${record.status} in ${page} and needs review.`,
+              expectedOutcome: `${record.title} is reviewed, evidence is accepted, and status returns to Green.`,
+            },
+            () => onOpenModule("My Work"),
+          )
+        : undefined,
+    });
+  }
+
   function saveRecord(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!newTitle.trim() || !newValue.trim()) return;
@@ -1596,7 +1640,7 @@ function Module({
         <div className="records-heading">
           <div>
             <h2>Active records</h2>
-            <p className="muted">Normalized view backed by the approved Dataverse record pattern.</p>
+            <p className="muted">Normalized view backed by the approved Dataverse record pattern. Click a row for details and resolution steps.</p>
           </div>
           <span className="record-count">{filteredRecords.length} visible records</span>
         </div>
@@ -1612,8 +1656,21 @@ function Module({
               </tr>
             </thead>
             <tbody>
-              {filteredRecords.map((record, index) => (
-                <tr key={`${record.title}-row`}>
+              {filteredRecords.map((record) => (
+                <tr
+                  key={`${record.title}-row`}
+                  className="clickable-row"
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`View details for ${record.title}`}
+                  onClick={() => openRecordDetail(record)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openRecordDetail(record);
+                    }
+                  }}
+                >
                   <th scope="row">{record.title}</th>
                   <td>{record.value}</td>
                   <td>{record.owner}</td>
