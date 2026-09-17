@@ -636,6 +636,85 @@ button:focus-visible {
   display: flex;
   gap: 10px;
   padding: 12px;
+  text-align: left;
+}
+
+.interactive-card,
+.interactive-row,
+.interactive-list-item {
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.interactive-card:hover,
+.interactive-card:focus-visible,
+.interactive-row:hover,
+.interactive-row:focus-visible,
+.interactive-list-item:hover,
+.interactive-list-item:focus-visible {
+  border-color: #ff5800;
+  box-shadow: 0 5px 16px #0002;
+  transform: translateY(-1px);
+}
+
+.interactive-card {
+  border: 1px solid transparent;
+  font: inherit;
+}
+
+.interactive-row {
+  border: 0;
+  border-bottom: 1px solid #e5e5e5;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.interactive-list-item {
+  border: 0;
+  background: transparent;
+  display: block;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.detail-backdrop {
+  align-items: center;
+  background: #17253688;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 20px;
+  position: fixed;
+  z-index: 40;
+}
+
+.detail-modal {
+  background: var(--surface, #fff);
+  border-top: 5px solid #ff5800;
+  border-radius: 14px;
+  box-shadow: 0 18px 50px #0005;
+  max-width: 600px;
+  padding: 26px;
+  width: 100%;
+}
+
+.detail-modal h2 {
+  margin: 8px 0;
+}
+
+.detail-modal p {
+  color: #555;
+  line-height: 1.6;
+}
+
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 22px;
 }
 
 .intelligence-item > div {
@@ -1525,6 +1604,14 @@ button:focus-visible {
 
 .theme-dark .lifecycle-detail {
   background: #3b2f1c;
+}
+
+.theme-dark .interactive-row {
+  border-color: #344656;
+}
+
+.theme-dark .detail-modal p {
+  color: #c4d5e1;
 }
 
 .theme-dark .runtime-demo,

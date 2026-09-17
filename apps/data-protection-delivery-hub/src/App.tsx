@@ -27,6 +27,7 @@ type Zone = "Start" | "Deliver" | "Prove" | "Transition" | "Improve";
 type Role = "Consultant" | "Workstream Lead" | "Architect" | "Project Manager" | "Engagement Manager" | "Reviewer" | "Practice Leader" | "Platform Administrator";
 type Language = "English" | "Español";
 type DemoMode = "standard" | "walkthrough";
+type DetailTarget = { title: string; summary: string; action?: string; onAction?: () => void };
 
 const zoneModules: Record<Zone, ModuleName[]> = {
   Start: ["Command Center", "My Work"],
@@ -297,6 +298,22 @@ function Pill({ v }: { v: string }) {
   return <span className={`pill ${v}`}>{v}</span>;
 }
 
+function DetailModal({ detail, onClose }: { detail: DetailTarget; onClose: () => void }) {
+  return (
+    <div className="detail-backdrop" role="presentation" onClick={onClose}>
+      <section className="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title" onClick={(event) => event.stopPropagation()}>
+        <div className="label accent">Interactive detail</div>
+        <h2 id="detail-title">{detail.title}</h2>
+        <p>{detail.summary}</p>
+        <div className="detail-actions">
+          <button className="secondary-button" type="button" onClick={onClose}>Close</button>
+          {detail.action && detail.onAction && <button className="primary-button" type="button" onClick={() => { detail.onAction?.(); onClose(); }}>{detail.action}</button>}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function InfoTip({ text }: { text: string }) {
   return <span className="info-tip" tabIndex={0} aria-label={text}>i<span role="tooltip">{text}</span></span>;
 }
@@ -458,6 +475,7 @@ function App() {
   const [showWelcome, setShowWelcome] = useState(() => window.localStorage.getItem("dpdh-guided-seen") !== "yes");
   const [demoMode, setDemoMode] = useState<DemoMode>(() => (window.localStorage.getItem("dpdh-demo-mode") as DemoMode) || "standard");
   const [walkthroughStep, setWalkthroughStep] = useState(0);
+  const [detail, setDetail] = useState<DetailTarget | null>(null);
   const connection = getConnectionReadiness();
   const runtime = getRuntimeConfig();
   const [improvements, setImprovements] = useState<PracticeImprovement[]>(() => getPracticeImprovements());
@@ -623,23 +641,23 @@ function App() {
 
             <ValueProposition role={role} />
             <WorkflowOverview guided={guided} />
-            <IntelligencePanel />
+            <IntelligencePanel onSelect={(item) => setDetail(item)} />
 
             <div className="metrics-grid">
               {metrics.map((metric) => (
-                <div className="card" key={metric.label}>
+                <button className="card interactive-card" type="button" key={metric.label} onClick={() => setDetail({ title: metric.label, summary: `This demo currently shows ${metric.value} ${metric.label.toLowerCase()}. In Live mode this card will be backed by governed Dataverse records and permission-filtered reporting.` })}>
                   <div className="label">{metric.label}</div>
                   <div className="metric">{metric.value}</div>
-                </div>
+                </button>
               ))}
             </div>
 
             <div className="signal-grid">
               {lifecycleSignals.map((signal) => (
-                <div className="card signal-card" key={signal.title}>
+                <button className="card signal-card interactive-card" type="button" key={signal.title} onClick={() => setDetail({ title: signal.title, summary: `Current demo signal: ${signal.value}. Use the linked work, evidence, and decision records to understand the source and next action behind this signal.` })}>
                   <div className="label">{signal.title}</div>
                   <div className={`metric signal ${signal.tone}`}>{signal.value}</div>
-                </div>
+                </button>
               ))}
             </div>
 
@@ -678,7 +696,7 @@ function App() {
             </div>
 
             <PracticeImprovementPanel improvements={improvements} onAdded={(item) => setImprovements((current) => [...current, item])} />
-            <QualityTrendPanel />
+            <QualityTrendPanel onSelect={(item) => setDetail(item)} />
 
             <div className="section">
               <div className="card">
@@ -691,7 +709,7 @@ function App() {
                 </div>
 
                 {seed.engagements.map((engagement) => (
-                  <div className="row" key={engagement.id}>
+                  <button className="row interactive-row" type="button" key={engagement.id} onClick={() => setDetail({ title: engagement.name, summary: `${engagement.stage} stage with ${engagement.health} health and ${engagement.progress}% progress. Select this engagement in the context selector to review its related delivery modules.`, action: "Set active engagement", onAction: () => setEngagementId(engagement.id) })}>
                     <strong>{engagement.name}</strong>
                     <span>{engagement.stage}</span>
                     <Pill v={engagement.health} />
@@ -701,7 +719,7 @@ function App() {
                       </div>
                       <small>{engagement.progress}%</small>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
 
@@ -709,39 +727,39 @@ function App() {
                 <div className="card">
                   <h2>Priority risks</h2>
                   {seed.risks.map((risk) => (
-                    <p key={risk.id} className="list-item">
+                    <button type="button" key={risk.id} className="list-item interactive-list-item" onClick={() => setDetail({ title: risk.title, summary: `${risk.severity} priority risk owned by ${risk.owner}, due ${risk.due}. Open RAID & Decisions to record mitigation, dependencies, decisions, and escalation.` , action: "Open RAID & Decisions", onAction: () => openModule("RAID & Decisions") })}>
                       <Pill v={risk.severity} /> <strong>{risk.title}</strong>
                       <br />
                       <small>
                         {risk.owner} · {risk.due}
                       </small>
-                    </p>
+                    </button>
                   ))}
                 </div>
 
                 <div className="card">
                   <h2>Stage gate watchlist</h2>
                   {stageGates.map((gate) => (
-                    <div className="gate-row" key={gate.name}>
+                    <button className="gate-row interactive-row" type="button" key={gate.name} onClick={() => setDetail({ title: gate.name, summary: `${gate.status} gate owned by ${gate.owner}. Review mandatory criteria, evidence, unresolved risks, and authorized approval before advancing the engagement.`, action: "Open Readiness & Assurance", onAction: () => openModule("Readiness & Assurance") })}>
                       <div>
                         <strong>{gate.name}</strong>
                         <div className="mini-meta">{gate.owner}</div>
                       </div>
                       <Pill v={gate.status} />
-                    </div>
+                    </button>
                   ))}
                 </div>
 
                 <div className="card">
                   <h2>Decisions</h2>
                   {seed.decisions.map((decision) => (
-                    <p key={decision.id} className="list-item">
+                    <button type="button" key={decision.id} className="list-item interactive-list-item" onClick={() => setDetail({ title: decision.title, summary: `${decision.status} decision owned by ${decision.owner}. Capture rationale, approver, due date, evidence, and any exception expiry in RAID & Decisions.`, action: "Open RAID & Decisions", onAction: () => openModule("RAID & Decisions") })}>
                       <strong>{decision.title}</strong>
                       <br />
                       <small>
                         {decision.status} · {decision.owner}
                       </small>
-                    </p>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -803,6 +821,7 @@ function App() {
       )}
       {showWelcome && guided && <GuidedWelcome onClose={closeWelcome} />}
       {demoMode === "walkthrough" && <DemoWalkthrough step={walkthroughStep} onNext={() => setWalkthroughStep((current) => current + 1)} onClose={() => setDemoMode("standard")} onNavigate={openModule} />}
+      {detail && <DetailModal detail={detail} onClose={() => setDetail(null)} />}
     </div>
   );
 }
@@ -881,7 +900,7 @@ function WorkflowOverview({ guided }: { guided: boolean }) {
   );
 }
 
-function IntelligencePanel() {
+function IntelligencePanel({ onSelect }: { onSelect: (detail: DetailTarget) => void }) {
   const signals = [
     { label: "Likely to fail", value: "Design exception", detail: "Approval overdue; compensating control missing", tone: "Red" },
     { label: "Decision at risk", value: "Customer ownership", detail: "Confirmation date not recorded", tone: "Amber" },
@@ -899,13 +918,13 @@ function IntelligencePanel() {
         <span className="record-count">Advisory signals</span>
       </div>
       <div className="intelligence-grid">
-        {signals.map((signal) => <div className="intelligence-item" key={signal.label}><Pill v={signal.tone} /><div><span className="label">{signal.label}</span><strong>{signal.value}</strong><small>{signal.detail}</small></div></div>)}
+        {signals.map((signal) => <button type="button" className="intelligence-item interactive-card" key={signal.label} onClick={() => onSelect({ title: signal.value, summary: `${signal.detail} This advisory signal should point to an owner, source record, and next action before the next status meeting.` })}><Pill v={signal.tone} /><div><span className="label">{signal.label}</span><strong>{signal.value}</strong><small>{signal.detail}</small></div></button>)}
       </div>
     </section>
   );
 }
 
-function QualityTrendPanel() {
+function QualityTrendPanel({ onSelect }: { onSelect: (detail: DetailTarget) => void }) {
   return (
     <div className="card quality-trends">
       <div className="records-heading">
@@ -916,13 +935,13 @@ function QualityTrendPanel() {
         {qualityMetrics.map((metric) => {
           const values = metricHistory[metric.id] ?? [];
           const max = Math.max(...values, 1);
-          return <div className="trend-card" key={metric.id}>
+          return <button type="button" className="trend-card interactive-card" key={metric.id} onClick={() => onSelect({ title: metric.name, summary: `Synthetic trend history: baseline ${metric.baseline}${metric.unit === "%" ? "%" : ""}, target ${metric.target}${metric.unit === "%" ? "%" : ""}. In production this metric should be sourced from governed records and reviewed by the practice owner.` })}>
             <strong>{metric.name}</strong>
             <div className="trend-bars" aria-label={`${metric.name} trend`}>
               {values.map((value, index) => <span key={`${metric.id}-${index}`} style={{ height: `${Math.max(8, (value / max) * 100)}%` }} title={`${value}${metric.unit === "%" ? "%" : ""}`} />)}
             </div>
             <small>Baseline {metric.baseline}{metric.unit === "%" ? "%" : ""} · Target {metric.target}{metric.unit === "%" ? "%" : ""}</small>
-          </div>;
+          </button>;
         })}
       </div>
     </div>
